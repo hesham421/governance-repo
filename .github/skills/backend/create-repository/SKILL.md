@@ -141,6 +141,7 @@ Before creating a new repository, verify the following shared resources from `er
 - ❌ Returning full entities when only a subset is needed for read-only queries
 - ❌ Dead code: repository methods that are never called by any service
 - ❌ Adding `existsBy<Field>AndIdNot()` when that field is immutable on update (dead code by design)
+- ❌ A query predicate that itself decides a business outcome (e.g. an "is eligible" filter) — repositories fetch/count data only; the decision belongs to `<Entity>Domain`, see [`domain-layer.md`](../../../context/domain-layer.md)
 
 ---
 

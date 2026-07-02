@@ -1,6 +1,6 @@
 ---
 name: validate-backend-feature
-description: "MASTER VALIDATION — runs ALL enforcement checks across a completed backend feature. Verifies execution order, file inventory, 77 layer-by-layer contract rules, cross-cutting validations (error handling, caching, security, immutability), and unit tests."
+description: "MASTER VALIDATION — runs ALL enforcement checks across a completed backend feature. Verifies execution order, file inventory, 85 layer-by-layer contract rules (including the Domain layer), cross-cutting validations (error handling, caching, security, immutability), and unit tests."
 ---
 
 # Skill: validate-backend-feature
@@ -28,7 +28,7 @@ description: "MASTER VALIDATION — runs ALL enforcement checks across a complet
 
 - Verify ALL phases were executed in correct order (entity → repository → DTO → mapper → service → controller → tests)
 - Run file inventory check to confirm all required files exist
-- Execute all layer-by-layer contract checks (77 rules)
+- Execute all layer-by-layer contract checks (85 rules, including the Domain layer)
 - Validate cross-cutting concerns: error handling, caching, security, immutability
 - Verify unit test coverage for all service method scenarios
 
@@ -62,14 +62,12 @@ Verify that ALL phases were executed in the correct order:
 [ ] Step 1.2 Repository   — File exists, extends JpaRepository + JpaSpecificationExecutor
 [ ] Step 1.3 DTOs         — All 5-6 DTO files exist (Create, Update, Response, Search, Usage, Option)
 [ ] Step 1.4 Mapper       — File exists, @Component annotated
-[ ] Step 1.4.5 Domain     — (CONDITIONAL: only if module Phase CORE
-                              declares "Domain behavior: separate classes
-                              in domain/")
-                              domain/ class(es) exist and are
-                              Spring-managed. Service delegates business
-                              rule checks to them — not inline.
-                              SKIP if Phase CORE declares "Domain
-                              behavior: embedded in Entity methods."
+[ ] Step 1.4.5 Domain     — Unconditional (see `.github/context/domain-layer.md`).
+                              A dedicated <Entity>Domain class exists for every entity
+                              whose Execution Plan RULE-IDs require Business Decision
+                              ownership; it is a plain class (no Spring/JPA annotations),
+                              constructed only via create()/from(); the Service delegates
+                              business rule checks to it — never inline.
 [ ] Step 1.5 Error Codes  — Constants registered in <Module>ErrorCodes
 [ ] Step 1.6 Permissions  — 4 permissions in SecurityPermissions.java
 [ ] Step 1.7 Service      — File exists, @Service annotated
@@ -96,17 +94,16 @@ erp-<module>/src/main/java/com/example/<module>/
 ├── dto/<Entity>UsageResponse.java                   [ ]
 ├── dto/<Entity>OptionResponse.java (if dropdown)    [ ]
 ├── mapper/<Entity>Mapper.java                       [ ]
-├── domain/<Entity>DomainClass.java   ← CONDITIONAL: only if module
-│                                        Phase CORE declares domain/
-│                                        layer. May be named
-│                                        <Entity>Domain,
-│                                        <Entity>Validator, or
-│                                        similar. Skip if not present.
+├── domain/<Entity>Domain.java                       [ ]  ← required whenever the
+│                                                            entity has Business Rules
+│                                                            needing Business Decision
+│                                                            ownership (see domain-layer.md)
 ├── exception/<Module>ErrorCodes.java (updated)      [ ]
 ├── service/<Entity>Service.java                     [ ]
 └── controller/<Entity>Controller.java               [ ]
 
 erp-<module>/src/test/java/com/example/<module>/
+├── domain/<Entity>DomainTest.java (if <Entity>Domain exists) [ ]
 └── service/<Entity>ServiceTest.java                 [ ]
 
 erp-security/src/main/java/.../
@@ -122,6 +119,10 @@ erp-main/src/main/resources/i18n/
 ### STAGE 2: Layer-by-Layer Contract Validation
 
 Run each enforcement skill's full checklist:
+
+#### 2.0 Domain Validation (7 checks from `enforce-backend-contract`)
+- A.0.1 through A.0.7 — see [`domain-layer.md`](../../../context/domain-layer.md). Unconditional
+  for every entity with Business Rules requiring Business Decision ownership.
 
 #### 2.1 Entity Validation (19 checks from `enforce-backend-contract`)
 - A.1.1 through A.1.19
@@ -141,8 +142,8 @@ Run each enforcement skill's full checklist:
 #### 2.4 Mapper Validation (7 checks)
 - A.4.1 through A.4.7
 
-#### 2.5 Service Validation (17 checks)
-- A.5.1 through A.5.17
+#### 2.5 Service Validation (18 checks)
+- A.5.1 through A.5.18
 
 #### 2.6 Controller Validation (12 checks)
 - A.6.1 through A.6.12
@@ -200,31 +201,31 @@ Run each enforcement skill's full checklist:
 [ ] Controller does NOT use @ResponseStatus(CREATED)
 ```
 
-#### 3.6 Domain Delegation (CONDITIONAL — if module declares domain/)
+#### 3.6 Domain Delegation (unconditional — see `domain-layer.md`)
 
 ```
 [ ] 3.6.1 — Business rule guards (deactivation checks, FK
              constraints, state transitions) are NOT inlined in
-             service method bodies — delegated to domain/ class(es)
-             or Entity methods
+             service method bodies — delegated to the entity's
+             <Entity>Domain object
 [ ] 3.6.2 — Service body is orchestration-only: load → delegate
              → persist → return (no business if blocks remaining)
-[ ] 3.6.3 — domain/ class throws LocalizedException for rule
+[ ] 3.6.3 — <Entity>Domain throws LocalizedException for rule
              violations (not the service)
-[ ] 3.6.4 — If domain/ class imports another module's service/
-             interface: NOT flagged as layer violation — this is a
-             sanctioned XM module-boundary dependency
+[ ] 3.6.4 — <Entity>Domain does NOT import or call another
+             module's service — cross-module (XM) data is resolved
+             by the Service and passed in as a plain argument
 ```
-
-NOTE: Skip 3.6 entirely if module Phase CORE declares "Domain
-behavior: embedded in Entity methods" — check entity methods
-directly instead (entity.validateX() call pattern in service).
 
 ---
 
 ### STAGE 4: Unit Test Validation
 
 ```
+[ ] <Entity>DomainTest exists (only when a <Entity>Domain class is required) —
+     plain unit test, NO mocks needed since Domain has no dependencies;
+     asserts each guard method throws LocalizedException on violation and
+     succeeds otherwise; asserts create()/from() reject invalid input
 [ ] Test file exists at correct location
 [ ] @ExtendWith(MockitoExtension.class) class annotation
 [ ] @Mock on repository and mapper
@@ -262,22 +263,25 @@ directly instead (entity.validateX() call pattern in service).
 
 | Stage | Weight | Max Score |
 |-------|--------|-----------|
-| Stage 0: Execution Order | 10% | 9 points |
-| Stage 1: File Inventory | 10% | 14 points |
-| Stage 2: Layer Contracts | 40% | 77 points |
+| Stage 0: Execution Order | 10% | 10 points |
+| Stage 1: File Inventory | 10% | 15 points |
+| Stage 2: Layer Contracts | 40% | 85 points |
 | Stage 3: Cross-Cutting | 25% | 22 points |
 | Stage 4: Unit Tests | 10% | 15 points |
 | Stage 5: Build/Test | 5% | 2 points |
-| **TOTAL** | **100%** | **139 points** |
+| **TOTAL** | **100%** | **149 points** |
+
+> Stage 0/1/2 totals include the Domain layer (1 execution-order step, 1 file, 7 contract
+> checks) added by the Domain Layer Guideline — see `domain-layer.md`.
 
 ### Verdict Thresholds
 
 | Score | Verdict | Action |
 |-------|---------|--------|
-| 139/139 (100%) | ✅ **APPROVED** | Proceed to frontend |
-| 133-138 (95%+) | ⚠️ **APPROVED WITH NOTES** | Minor issues, document and proceed |
-| 112-132 (80%+) | 🔶 **CONDITIONAL** | Fix issues before proceeding |
-| < 112 (< 80%) | ❌ **REJECTED** | Major rework required |
+| 149/149 (100%) | ✅ **APPROVED** | Proceed to frontend |
+| 142-148 (95%+) | ⚠️ **APPROVED WITH NOTES** | Minor issues, document and proceed |
+| 119-141 (80%+) | 🔶 **CONDITIONAL** | Fix issues before proceeding |
+| < 119 (< 80%) | ❌ **REJECTED** | Major rework required |
 
 ### Automatic Rejection (regardless of score)
 
@@ -294,6 +298,8 @@ The feature is **IMMEDIATELY REJECTED** if any of these are found:
 - Dead-code repository methods with no caller in any service
 - Entity helper methods iterating/filtering lazy `@OneToMany` collections
 - Child mapper `toEntity()` without parent entity FK parameter
+- Business-rule condition inlined in a Service method instead of delegated to `<Entity>Domain`
+- `<Entity>Domain` annotated with `@Component`, `@Service`, or `@Entity`, or accessing a Repository
 
 ---
 
@@ -317,6 +323,7 @@ The feature is **IMMEDIATELY REJECTED** if any of these are found:
 | 1.2 | Repository | ✅/❌ |
 | 1.3 | DTOs | ✅/❌ |
 | 1.4 | Mapper | ✅/❌ |
+| 1.4.5 | Domain | ✅/❌ |
 | 1.5 | Error Codes | ✅/❌ |
 | 1.6 | Permissions | ✅/❌ |
 | 1.7 | Service | ✅/❌ |
@@ -324,16 +331,17 @@ The feature is **IMMEDIATELY REJECTED** if any of these are found:
 | 1.9 | Unit Tests | ✅/❌ |
 
 ## STAGE 1: File Inventory
-[x/14] files present
+[x/15] files present
 
 ## STAGE 2: Layer Contracts
 | Layer | Checks | Passed | Failed |
 |-------|--------|--------|--------|
+| Domain | 7 | ? | ? |
 | Entity | 19 | ? | ? |
 | Repository | 9 | ? | ? |
 | DTO | 13 | ? | ? |
 | Mapper | 7 | ? | ? |
-| Service | 17 | ? | ? |
+| Service | 18 | ? | ? |
 | Controller | 12 | ? | ? |
 
 ## STAGE 3: Cross-Cutting
@@ -358,7 +366,7 @@ The feature is **IMMEDIATELY REJECTED** if any of these are found:
 ## VIOLATIONS FOUND
 1. [Rule ID] — [Description] — [Location] — [Severity]
 
-## SCORE: [X] / 139 ([Y]%)
+## SCORE: [X] / 149 ([Y]%)
 
 ## VERDICT: APPROVED / APPROVED WITH NOTES / CONDITIONAL / REJECTED
 

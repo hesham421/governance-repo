@@ -193,6 +193,7 @@ Before creating a mapper, verify the following shared conventions from `erp-comm
 - ❌ Hardcoded `canDelete = true` — must be computed from counts
 - ❌ Using MapStruct — manual mapping is the project standard
 - ❌ Missing audit fields in `toResponse()` — `createdAt`, `createdBy`, `updatedAt`, `updatedBy` are mandatory
+- ❌ A conditional in the mapper that encodes a business decision rather than a plain field transformation — belongs in `<Entity>Domain`, see [`domain-layer.md`](../../../context/domain-layer.md)
 
 ---
 

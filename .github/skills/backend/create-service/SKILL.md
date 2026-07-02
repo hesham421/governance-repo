@@ -59,17 +59,24 @@ Generates the service class for an ERP feature. This is **Phase 1, Step 1.7** of
 ## Steps
 
 ## Domain Delegation Rule
-Before implementing any business rule inline in the service,
-check the module's Phase CORE for declared domain behavior placement.
 
-- Module declares domain/ layer:
-  Extract validations, decisions, and state-transition logic into
-  domain/<Entity>Domain.java. Inject it into the service and call it.
-  Service body must remain orchestration-only after delegation.
-- Module places domain behavior in Entity methods:
-  Call entity.validateX() instead of inlining the check in service.
-- A domain class MAY depend on another module's service/ interface
-  for XM cross-module lookups — this is NOT a layer violation.
+Full guideline: [`domain-layer.md`](../../../context/domain-layer.md).
+
+Before implementing any conditional in the service, apply the Decision Test: does this code
+answer "is this operation allowed?" If yes, it MUST be expressed as a call to the entity's
+Domain companion object (`<Entity>Domain`, produced by `create-entity` — see its "DOMAIN
+COMPANION OBJECT" section), never as an inline `if` in the service method body. This applies
+unconditionally, regardless of what any module's Phase CORE does or doesn't say.
+
+- Fetch whatever data the rule needs via the Repository (counts, flags, sibling records).
+- Build or load the Domain object via its factory: `<Entity>Domain.create(...)` for new
+  instances, `<Entity>Domain.from(entity)` for evaluating a rule against an existing one.
+- Call its decision method. It throws `LocalizedException` on violation.
+- On success, call the Entity's own mutation method (e.g. `entity.deactivate()`) and persist.
+
+Cross-module (XM) data needed for a decision is resolved by the Service — call the other
+module's service, obtain the result, and pass it into the Domain object's method as a plain
+argument. The Domain object itself never imports or calls another module's service.
 
 The service MUST NOT own business rule conditions (if blocks that
 enforce business invariants) directly in its method bodies.
@@ -108,21 +115,23 @@ public class <ENTITY_NAME>Service {
 public ServiceResult<<ENTITY>Response> create(<ENTITY>CreateRequest request) {
     log.info("Creating <Entity> with key: {}", request.getKey());
 
-    // 1. Validate uniqueness
-    if (repository.existsByKey(request.getKey().toUpperCase())) {
-        throw new LocalizedException(Status.ALREADY_EXISTS,
-            <Module>ErrorCodes.<ENTITY>_KEY_DUPLICATE, request.getKey());
-    }
+    // 1. Fetch the data the rule needs — repository access stays in the Service
+    boolean keyTaken = repository.existsByKey(request.getKey().toUpperCase());
 
-    // 2. Map to entity (FK relationships set AFTER mapping)
+    // 2. Delegate the decision to the Domain object — throws LocalizedException
+    //    (e.g. <Module>ErrorCodes.<ENTITY>_KEY_DUPLICATE) on violation. See
+    //    create-entity's "DOMAIN COMPANION OBJECT" section and domain-layer.md.
+    <ENTITY>Domain.create(request.getKey(), keyTaken);
+
+    // 3. Map to entity (FK relationships set AFTER mapping)
     Md<ENTITY> entity = mapper.toEntity(request);
     // entity.setParent(parentEntity); // If child entity
 
-    // 3. Save
+    // 4. Save
     Md<ENTITY> saved = repository.save(entity);
     log.info("Created <Entity> with ID: {}", saved.getId());
 
-    // 4. Return ServiceResult with Status.CREATED
+    // 5. Return ServiceResult with Status.CREATED
     return ServiceResult.success(mapper.toResponse(saved), Status.CREATED);
 }
 ```
@@ -140,14 +149,22 @@ public ServiceResult<<ENTITY>Response> update(Long id, <ENTITY>UpdateRequest req
         .orElseThrow(() -> new LocalizedException(
             Status.NOT_FOUND, <Module>ErrorCodes.<ENTITY>_NOT_FOUND, id));
 
-    // 2. Update via mapper (immutable fields NOT changed)
+    // 2. Fetch data any update-time rule needs — e.g. a uniqueness re-check
+    //    excluding this id (existsBy<Field>AndIdNot — ONLY if the field is
+    //    mutable on update, see create-repository A.2.5)
+    boolean keyTakenByAnother = repository.existsByKeyAndIdNot(request.getKey().toUpperCase(), id);
+
+    // 3. Delegate the decision to the Domain object
+    <ENTITY>Domain.from(entity).assertCanRename(keyTakenByAnother);
+
+    // 4. Update via mapper (immutable fields NOT changed)
     mapper.updateEntityFromRequest(entity, request);
 
-    // 3. Save
+    // 5. Save
     Md<ENTITY> saved = repository.save(entity);
     log.info("Updated <Entity> ID: {}", saved.getId());
 
-    // 4. Return ServiceResult with Status.UPDATED
+    // 6. Return ServiceResult with Status.UPDATED
     return ServiceResult.success(mapper.toResponse(saved), Status.UPDATED);
 }
 ```
@@ -176,7 +193,8 @@ public ServiceResult<Page<<ENTITY>Response>> search(<ENTITY>SearchRequest search
 
     SearchRequest commonRequest = searchRequest.toCommonSearchRequest();
 
-    Specification<Md<ENTITY>> spec = SpecBuilder.build(commonRequest, ALLOWED_SORT_FIELDS);
+    SetAllowedFields allowedFields = new SetAllowedFields(ALLOWED_SORT_FIELDS);
+    Specification<Md<ENTITY>> spec = SpecBuilder.build(commonRequest, allowedFields, DefaultFieldValueConverter.INSTANCE);
     Pageable pageable = PageableBuilder.from(commonRequest, ALLOWED_SORT_FIELDS);
 
     Page<Md<ENTITY>> page = repository.findAll(spec, pageable);
@@ -219,11 +237,9 @@ public ServiceResult<<ENTITY>Response> deactivate(Long id) {
         .orElseThrow(() -> new LocalizedException(
             Status.NOT_FOUND, <Module>ErrorCodes.<ENTITY>_NOT_FOUND, id));
 
-    // Delegate pre-deactivation business rule guards to domain
-    // entityDomain.validateDeactivation(id); — injected from domain/<Entity>Domain.java
-    // (if module declares domain/ layer) or called as entity.validateDeactivation()
-    // if domain behavior is embedded in Entity methods. Check module
-    // Phase CORE for the declared domain behavior placement.
+    // Fetch data the rule needs, then delegate the decision to the Domain object
+    long activeChildren = repository.countActiveChildren(id); // example — actual counts per entity's RULE-IDs
+    <ENTITY>Domain.from(entity).assertCanDeactivate(activeChildren);
 
     entity.deactivate();
 
@@ -361,6 +377,9 @@ Before creating a service, verify the following shared resources from `erp-commo
 - ❌ Try-catch for `DataIntegrityViolationException` in delete — it propagates to `GlobalExceptionHandler`
 - ❌ Using `log.info()` for read operations (use `log.debug()`)
 - ❌ Missing cache eviction on writes for cached entities
+- ❌ A business-rule condition (`if` enforcing an invariant) implemented inline in a service
+  method instead of delegated to the entity's `<Entity>Domain` object — see
+  [`domain-layer.md`](../../../context/domain-layer.md)
 
 ---
 

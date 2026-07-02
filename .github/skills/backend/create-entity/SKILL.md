@@ -1,6 +1,6 @@
 ---
 name: create-entity
-description: "Generates a JPA entity class following the canonical pattern. Phase 1, Step 1 — MUST be completed before any other backend artifact. Enforces AuditableEntity, @SuperBuilder, BooleanNumberConverter, @Formula counts, and all DB naming conventions."
+description: "Generates a JPA entity class following the canonical pattern, plus its Domain companion object (business rules) when the entity has Business Rules requiring Business Decision ownership. Phase 1, Step 1 — MUST be completed before any other backend artifact. Enforces AuditableEntity, @SuperBuilder, BooleanNumberConverter, @Formula counts, DB naming conventions, and Domain object construction via factory methods (create()/from())."
 ---
 
 # Skill: create-entity
@@ -42,7 +42,11 @@ Generates a JPA entity class for the ERP system following the canonical MasterLo
 - Add FK relationships (`@ManyToOne` LAZY) if child entity
 - Add child collections (`@OneToMany`) and `@Formula` counts if parent entity
 - Implement `@PrePersist`/`@PreUpdate` lifecycle hooks for key normalization
-- Provide `activate()`/`deactivate()` helper methods
+- Provide `activate()`/`deactivate()` helper methods — pure field mutation only, no guard logic
+- Per `.github/context/domain-layer.md`: if the entity has Business Rules requiring Business
+  Decision ownership (RULE-IDs from the Execution Plan that answer "is this allowed"), also
+  generate the entity's Domain companion object — see "DOMAIN COMPANION OBJECT" below. If the
+  entity has no such rules (e.g. a pure reference/lookup table), no Domain companion is required.
 
 ## Constraints
 
@@ -54,7 +58,10 @@ Generates a JPA entity class for the ERP system following the canonical MasterLo
 
 ## Output
 
-- Single file: `erp-<MODULE>/src/main/java/com/example/<module>/entity/Md<Entity>.java`
+- `erp-<MODULE>/src/main/java/com/example/<module>/entity/Md<Entity>.java`
+- `erp-<MODULE>/src/main/java/com/example/<module>/domain/<Entity>Domain.java` — only when the
+  entity has Business Rules requiring Business Decision ownership (see "DOMAIN COMPANION
+  OBJECT" below)
 
 ---
 
@@ -171,6 +178,112 @@ Before creating a new entity, verify the following shared resources from `erp-co
 - NEVER set `createdAt/createdBy/updatedAt/updatedBy` manually — `AuditEntityListener` handles it
 
 > **Cross-reference:** After creating the entity, run [`enforce-backend-contract`](../enforce-backend-contract/SKILL.md) to verify compliance.
+
+---
+
+## DOMAIN COMPANION OBJECT (Business Rules)
+
+> Full guideline: [`domain-layer.md`](../../../context/domain-layer.md). This section applies
+> the guideline specifically to entity generation — it does not restate it in full.
+
+The entity file above is persistence-only. Any Business Rule traceable to a Plan RULE-ID that
+answers **"is this operation allowed?"** — deactivation guards, code-immutability enforcement,
+uniqueness preconditions the entity alone can decide, state-transition validation, cycle
+prevention — does not belong on the entity. It belongs on a separate, dedicated Domain object.
+
+### Package — check for a naming collision before generating
+
+Default output package: `com.example.<module>.domain.<Entity>Domain`. Before generating into
+that package, check the module's Phase CORE for an existing, conflicting use of `<module>.domain`
+(for example, the ORG module's `CORE.md` already assigns `org.domain` to its JPA entities, not to
+business-rule classes — that module is not to be touched by this default). If the module's Phase
+CORE already assigns `<module>.domain` to a different concern, stop and confirm the intended
+package with the user before generating, rather than silently placing Domain classes and Entities
+in a package whose name contradicts what one of them actually is.
+
+### Rules (STRICT — mirrors `enforce-backend-contract` LAYER 0)
+
+| Rule ID | Rule | MUST |
+|---------|------|------|
+| A.0.1 | A dedicated `<Entity>Domain` class exists for every entity whose Plan RULE-IDs answer "is this operation allowed?" | YES |
+| A.0.2 | `<Entity>Domain` carries no Spring or JPA annotations (no `@Component`, `@Service`, `@Entity`, `@Table`, `@Transactional`) | YES |
+| A.0.3 | `<Entity>Domain` does not access a Repository or the database under any circumstance | YES |
+| A.0.4 | `<Entity>Domain` throws `LocalizedException` for all business rule violations | YES |
+| A.0.5 | `<Entity>Domain` is constructed only via static factories `create(...)` / `from(...)` — no public constructor used from outside the class | YES |
+| A.0.6 | `<Entity>Domain` does not import or call another module's service — cross-module data is resolved by the Service and passed in | YES |
+| A.0.7 | At most one Domain object per entity; a Domain Service is introduced only per the Domain Service Policy in `domain-layer.md`, never one per entity | YES |
+
+### Responsibilities
+
+- One `<Entity>Domain` class per entity that has such rules — plain Java, no annotations
+- Static factory `create(...)` — runs construction-time Business Validations, returns a valid
+  instance or throws `LocalizedException`
+- Static factory `from(<Entity> entity)` — reconstructs a Domain view over an already-persisted
+  entity, for evaluating a rule before a mutation (e.g. before deactivation)
+- Guard/decision methods that take primitives or the `<Entity>` itself as arguments (counts,
+  flags, sibling data already fetched by the Service) and throw `LocalizedException` on a rule
+  violation
+- Division of labor on state transitions: the Domain object **decides** ("may this entity be
+  deactivated given these counts"); the Entity's existing `activate()`/`deactivate()` methods
+  still **execute** the field mutation; the Service calls the Domain object first, then the
+  Entity
+
+### Constraints
+
+- MUST NOT carry `@Entity`, `@Table`, `@Component`, `@Service`, `@Transactional`, or any other
+  Spring/JPA annotation
+- MUST NOT access a Repository or the database
+- MUST NOT perform DTO mapping, call a REST endpoint, or call another module's service
+- MUST NOT expose a public constructor usable from outside the class — `create(...)`/`from(...)`
+  are the only entry points
+- MUST NOT be generated as one Domain Service per entity — per the Domain Service Policy in
+  `domain-layer.md`, default to no Domain Service at all; a Domain Service is introduced only
+  when a rule spans multiple entities or repositories, and is a separate, explicitly-justified
+  artifact, not a rename of this class
+
+### Violations (MUST NOT)
+
+- ❌ `<Entity>Domain` annotated with `@Component`/`@Service`/`@Entity`
+- ❌ `<Entity>Domain` field or constructor referencing a Repository
+- ❌ Public no-arg or all-args constructor usable outside the class instead of `create()`/`from()`
+- ❌ A Business Rule left inline in the Service instead of expressed here (see `create-service`)
+- ❌ Skipping this section for an entity that has RULE-ID guards in the Execution Plan
+
+### Example
+
+```java
+public final class OrgLegalEntityDomain {
+
+    private final String legalEntityCode;
+    private final boolean active;
+
+    private OrgLegalEntityDomain(String legalEntityCode, boolean active) {
+        this.legalEntityCode = legalEntityCode;
+        this.active = active;
+    }
+
+    public static OrgLegalEntityDomain create(String generatedCode) {
+        if (generatedCode == null || generatedCode.isBlank()) {
+            throw new LocalizedException(Status.VALIDATION_ERROR, OrgErrorCodes.CODE_REQUIRED);
+        }
+        return new OrgLegalEntityDomain(generatedCode, true);
+    }
+
+    public static OrgLegalEntityDomain from(OrgLegalEntity entity) {
+        return new OrgLegalEntityDomain(entity.getLegalEntityCode(), Boolean.TRUE.equals(entity.getIsActiveFl()));
+    }
+
+    // RULE-ORG-001 / RULE-ORG-002 — decision only, Service performs entity.deactivate() after this returns
+    public void assertCanDeactivate(long activeBranchCount, long activeProfitCenterCount) {
+        if (activeBranchCount > 0) {
+            throw new LocalizedException(Status.BUSINESS_RULE_VIOLATION, OrgErrorCodes.LE_HAS_ACTIVE_BRANCHES);
+        }
+        if (activeProfitCenterCount > 0) {
+            throw new LocalizedException(Status.BUSINESS_RULE_VIOLATION, OrgErrorCodes.LE_HAS_ACTIVE_PROFIT_CENTERS);
+        }
+    }
+}
+```
 
 ---
 

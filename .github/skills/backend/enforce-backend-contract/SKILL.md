@@ -1,6 +1,6 @@
 ---
 name: enforce-backend-contract
-description: "GOVERNANCE ENFORCER — validates generated backend code against ALL 77 contract rules across 6 layers (Entity, Repository, DTO, Mapper, Service, Controller). Rejects any violation. Use after ANY backend code generation or review."
+description: "GOVERNANCE ENFORCER — validates generated backend code against ALL 85 contract rules across 7 layers (Domain, Entity, Repository, DTO, Mapper, Service, Controller). Rejects any violation. Use after ANY backend code generation or review."
 ---
 
 # Skill: enforce-backend-contract
@@ -25,7 +25,7 @@ description: "GOVERNANCE ENFORCER — validates generated backend code against A
 
 ## Responsibilities
 
-- Validate generated backend code against ALL 77 contract rules across 6 layers (Entity, Repository, DTO, Mapper, Service, Controller)
+- Validate generated backend code against ALL 85 contract rules across 7 layers (Domain, Entity, Repository, DTO, Mapper, Service, Controller)
 - Mark each check as PASS or VIOLATION
 - Reject any non-compliant code with specific violation references
 
@@ -34,7 +34,7 @@ description: "GOVERNANCE ENFORCER — validates generated backend code against A
 - MUST NOT generate or modify application code — this skill only validates
 - MUST NOT fix violations automatically — report them for the appropriate create-* skill to fix
 - MUST NOT validate layers outside the backend module scope
-- MUST NOT skip any check — ALL 77 rules must be evaluated
+- MUST NOT skip any check — ALL 85 rules must be evaluated
 
 ## Output
 
@@ -45,25 +45,31 @@ description: "GOVERNANCE ENFORCER — validates generated backend code against A
 
 ## Enforcement Checklist
 
-### LAYER 0: Domain Layer (if declared by module Phase CORE)
+### LAYER 0: Domain Layer
+
+> Full guideline: [`domain-layer.md`](../../../context/domain-layer.md). This check is
+> **unconditional** — it applies to every entity with Business Rules requiring Business
+> Decision ownership, regardless of what any module's Phase CORE does or doesn't declare.
 
 ```
-[ ] A.0.1 — domain/ classes exist if module Phase CORE declares
-             "Domain behavior: separate classes in domain/"
-[ ] A.0.2 — domain/ classes are Spring-managed
-             (@Component or @Service)
-[ ] A.0.3 — domain/ classes do NOT make direct HTTP calls or
-             access repository unless injected via constructor
-             (data should be passed in by service)
-[ ] A.0.4 — domain/ classes throw LocalizedException for all
+[ ] A.0.1 — A dedicated <Entity>Domain class exists for every entity whose Execution Plan
+             RULE-IDs answer "is this operation allowed?" (deactivation guards, code-
+             immutability, cycle prevention, state-transition checks, etc.)
+[ ] A.0.2 — <Entity>Domain carries NO Spring or JPA annotations
+             (no @Component, @Service, @Entity, @Table, @Transactional)
+[ ] A.0.3 — <Entity>Domain does NOT access a Repository or the database, under any
+             circumstance, including constructor injection — all data it needs is passed
+             in as plain arguments by the Service
+[ ] A.0.4 — <Entity>Domain throws LocalizedException for all
              business rule violations — never raw RuntimeException
-[ ] A.0.5 — A domain/ class importing another module's service/
-             interface is NOT a layer violation — it is a sanctioned
-             XM module-boundary dependency. Do not flag it.
+[ ] A.0.5 — <Entity>Domain is constructed ONLY via static factory methods
+             (create(...), from(...)) — no public constructor used from outside the class
+[ ] A.0.6 — <Entity>Domain does NOT import or call another module's service — cross-module
+             (XM) data is resolved by the Service and passed in as a plain argument
+[ ] A.0.7 — At most one Domain object per entity; a Domain Service exists only when a rule
+             genuinely spans multiple entities/repositories — flag "one Domain Service per
+             entity" as an over-application per the Domain Service Policy
 ```
-
-NOTE: If module Phase CORE declares "Domain behavior: embedded in
-Entity methods," skip A.0.1–A.0.5 and verify entity methods instead.
 
 ### LAYER 1: Entity Contract Enforcement
 
@@ -162,9 +168,11 @@ Run EVERY check. Mark ✅ PASS or ❌ VIOLATION.
 [ ] A.5.16 — Child search requires non-null parent ID
 [ ] A.5.17 — Child search uses Specification JOIN
 [ ] A.5.18 — Business rule checks (deactivation guards, FK constraints,
-             state transitions, domain invariants) are delegated to
-             domain/ classes or Entity methods — NOT inlined directly
-             in service method bodies. Service body is orchestration-only.
+             state transitions, domain invariants) are delegated to the
+             entity's <Entity>Domain object — NOT inlined directly
+             in service method bodies, and NOT left on the Entity itself
+             beyond a trivial field mutation. Service body is orchestration-only.
+             See `domain-layer.md`. Automatic rejection trigger — see table above.
 ```
 
 ### LAYER 6: Controller Contract Enforcement
@@ -225,6 +233,9 @@ The following patterns trigger IMMEDIATE rejection — no exceptions:
 | Boolean without `BooleanNumberConverter` | PostgreSQL SMALLINT convention breach |
 | Mapper doing `.toUpperCase()` | Canonical violation — entity @PrePersist handles it |
 | `entity.setIsActive(true)` in service | Must use `activate()`/`deactivate()` |
+| Business-rule `if` (enforcing an invariant) inlined in a Service method | Must delegate to `<Entity>Domain` — see `domain-layer.md` (A.5.18) |
+| `<Entity>Domain` annotated with `@Component`, `@Service`, or `@Entity` | Domain must be a plain class — see `domain-layer.md` (A.0.2) |
+| `<Entity>Domain` with a Repository field or constructor parameter | Domain must never access persistence — see `domain-layer.md` (A.0.3) |
 
 ---
 
@@ -239,13 +250,14 @@ The following patterns trigger IMMEDIATE rejection — no exceptions:
 
 | Layer | Checks | Passed | Failed | Status |
 |-------|--------|--------|--------|--------|
+| Domain | 7 | ? | ? | ✅/❌ |
 | Entity | 19 | ? | ? | ✅/❌ |
 | Repository | 9 | ? | ? | ✅/❌ |
 | DTO | 13 | ? | ? | ✅/❌ |
 | Mapper | 7 | ? | ? | ✅/❌ |
 | Service | 18 | ? | ? | ✅/❌ |
 | Controller | 12 | ? | ? | ✅/❌ |
-| **TOTAL** | **78** | **?** | **?** | **?** |
+| **TOTAL** | **85** | **?** | **?** | **?** |
 
 ### Violations Found:
 1. [Violation details]

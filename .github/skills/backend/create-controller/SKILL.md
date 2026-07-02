@@ -256,6 +256,7 @@ Before creating a controller, verify the following shared resources from `erp-co
 - ❌ Missing `@Valid` on `@RequestBody`
 - ❌ Missing `@Operation` on any endpoint
 - ❌ Missing `OperationCode` injection
+- ❌ Any code answering "is this operation allowed?" (per the Decision Test in [`domain-layer.md`](../../../context/domain-layer.md)) — that belongs in `<Entity>Domain`, reached through the Service, never in the Controller
 
 ---
 

@@ -78,6 +78,10 @@ Skill files are at `.github/skills/<category>/<skill-name>/SKILL.md`.
 **Backend (strict):**
 `enforce-backend-contract` → `create-entity` → `create-repository` → `create-dto` → `create-mapper` → `create-service` → `create-controller` → `validate-backend-feature`
 
+> `create-entity` emits two artifacts in this one step when applicable: the JPA entity, and its
+> Domain companion object (business rules) per `.github/context/domain-layer.md`. This does not
+> add a step to the sequence above.
+
 **Frontend (strict):**
 `create-models` → `create-api-service` → `create-facade` → `create-routing` → `create-components` → `validate-frontend-feature`
 
@@ -92,11 +96,18 @@ Skill files are at `.github/skills/<category>/<skill-name>/SKILL.md`.
 - After completing a feature, run the validation skill to verify compliance
 - Reference existing implementations in the codebase as canonical examples
 - `master-registry.md` is the single source of truth for all entities and rules
+- Business-rule conditions (anything answering "is this operation allowed?") must be
+  implemented on a dedicated Domain object created via `create()`/`from()` factory methods —
+  never inlined in Service, Repository, Controller, Mapper, or the Entity. See
+  `.github/context/domain-layer.md`. This is a Governance requirement, not a prescription of
+  which Backend Skill produces the Domain object — that remains an implementation detail of
+  the Backend Skills.
 
 ---
 
 ## Context Reference (read on demand)
 
 - Backend architecture overview: `.github/context/backend.md`
+- Domain Layer Guideline (Business Rule ownership): `.github/context/domain-layer.md`
 - Frontend architecture overview + navigation i18n keys: `.github/context/frontend.md`
 - All detailed rules live in `.github/skills/`

@@ -37,6 +37,9 @@ Generates the complete set of DTO classes for a feature in the ERP system. This 
 - MUST NOT include mutable natural keys in `UpdateRequest` without explicit approval
 - MUST NOT assume field types — derive from entity definition
 - MUST NOT hardcode validation messages — use i18n keys only
+- Note: structural validation (`@NotBlank`, `@Size`, format checks) is not a Business Rule
+  under [`domain-layer.md`](../../../context/domain-layer.md) — it stays here, on the DTO,
+  exactly as today. Do not move it to `<Entity>Domain`.
 
 ## Output
 
