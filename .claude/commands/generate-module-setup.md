@@ -1,3 +1,108 @@
+# Generate Module Execution Setup
+
+## Your Task
+
+Scan the governance repo for the specified module and generate two files:
+1. `.claude/commands/execute.md` — the slash command for phase execution
+2. `governance-repo/modules/[MODULE]/execution-state.json` — current state tracker
+
+---
+
+## Input
+
+Module name: **$ARGUMENTS**
+
+Governance repo path: `governance-repo/modules/$ARGUMENTS/`
+
+---
+
+## Step 1 — Scan the governance repo structure
+
+Run the following and capture the output:
+
+```bash
+find governance-repo/modules/$ARGUMENTS/packages/execution -type f -name "*.md" | sort
+find governance-repo/modules/$ARGUMENTS/packages/test -type f -name "*.md" | sort
+```
+
+From the scan results:
+- Identify all PHASES (top-level folders under `packages/execution/`)
+- For each PHASE, identify all SUBs (files inside the phase folder, excluding `index.md`)
+- Preserve the exact order from the filesystem sort
+- For each SUB file, read the first 40 lines and count the number of tasks
+
+Expected phases (in strict execution order):
+`CORE → DATA-DOM → SVC-API → DOC → INT-C → INT-R → F1 → F2 → F3 → SEC → ALIGN`
+
+Only include phases that actually exist in the scanned structure.
+
+### Weight classification (record for Weight Map in execute.md):
+
+| Weight | Criteria |
+|--------|----------|
+| LIGHT  | < 5 tasks, single layer |
+| MEDIUM | 5–10 tasks, 1–2 layers |
+| HEAVY  | > 10 tasks, multi-layer (Entity+Repo+Service+Controller) |
+| XL     | Full backend feature OR 3+ frontend screens in one sub |
+
+Record the weight and estimated task count for every sub found.
+
+---
+
+## Step 2 — Generate `execution-state.json`
+
+Create the file at:
+`governance-repo/modules/$ARGUMENTS/execution-state.json`
+
+### Rules:
+- `module` = the module name from $ARGUMENTS
+- `current_phase` = first phase found in scan (status will be PENDING or IN_PROGRESS)
+- `current_sub` = first sub of the first phase (null if phase has no subs)
+- All phases start as `PENDING`
+- All subs inside phases start as `PENDING`
+- If a phase has only `index.md` and no sub files → `"subs": []`
+- `blocked` and `deferred_xm` start as empty arrays
+
+### Format:
+```json
+{
+  "module": "[MODULE]",
+  "generated_at": "[today's date]",
+  "current_phase": "[FIRST_PHASE]",
+  "current_sub": "[FIRST_SUB or null]",
+  "phases": [
+    {
+      "id": "[PHASE_NAME]",
+      "status": "PENDING",
+      "subs": [
+        { "id": "[SUB_NAME]", "status": "PENDING" }
+      ]
+    }
+  ],
+  "blocked": [],
+  "deferred_xm": []
+}
+```
+
+---
+
+## Step 3 — Generate `.claude/commands/execute.md`
+
+Create the file at:
+`.claude/commands/execute.md`
+
+### Content to generate:
+
+The file must reference the exact phase names and sub names discovered in Step 1.
+For each sub, record its estimated weight based on task count seen during scan:
+- LIGHT  = < 5 tasks
+- MEDIUM = 5–10 tasks
+- HEAVY  = > 10 tasks or multi-layer (backend Entity+Repo+Service+Controller)
+- XL     = full backend feature OR 3+ frontend screens in one sub
+
+Generate the file with this structure:
+
+```markdown
 # /project:execute
 
 Execute the current phase for the specified module — with context safety check.
@@ -112,62 +217,27 @@ XM Deferred   : [XM-IDs / none]
 
 ---
 
-## Weight Map — ORG
+## Weight Map — [MODULE]
 
-| Phase    | Sub                    | Weight | Est. Tasks |
-|----------|-------------------------|--------|------------|
-| CORE     | CORE                    | LIGHT  | 4          |
-| DATA-DOM | DATA-DOM-CORE-ENTITIES  | XL     | 32         |
-| DATA-DOM | DATA-DOM-HEADER         | LIGHT  | 1          |
-| SVC-API  | SVC-API-CRUD            | XL     | 42         |
-| SVC-API  | SVC-API-HEADER          | HEAVY  | 44         |
-| SVC-API  | SVC-API-TREE            | LIGHT  | 2          |
-| DOC      | DOC                     | LIGHT  | 3          |
-| INT-C    | INT-C                   | LIGHT  | 4          |
-| INT-R    | INT-R                   | LIGHT  | 1          |
-| F1       | F1-HEADER               | LIGHT  | 1          |
-| F1       | F1-SCR-ORG-001          | LIGHT  | 1          |
-| F1       | F1-SCR-ORG-002          | LIGHT  | 1          |
-| F1       | F1-SCR-ORG-003          | LIGHT  | 1          |
-| F1       | F1-SCR-ORG-004          | LIGHT  | 2          |
-| F1       | F1-SCR-ORG-005          | LIGHT  | 2          |
-| F1       | F1-SCR-ORG-006          | LIGHT  | 1          |
-| F1       | F1-SCR-ORG-007          | LIGHT  | 1          |
-| F2       | F2-HEADER               | LIGHT  | 1          |
-| F2       | F2-SCR-ORG-001          | MEDIUM | 10         |
-| F2       | F2-SCR-ORG-002          | MEDIUM | 10         |
-| F2       | F2-SCR-ORG-003          | MEDIUM | 10         |
-| F2       | F2-SCR-ORG-004          | HEAVY  | 11         |
-| F2       | F2-SCR-ORG-005          | HEAVY  | 11         |
-| F2       | F2-SCR-ORG-006          | MEDIUM | 10         |
-| F2       | F2-SCR-ORG-007          | MEDIUM | 10         |
-| F3       | F3-HEADER               | LIGHT  | 1          |
-| F3       | F3-SCR-ORG-001          | LIGHT  | 4          |
-| F3       | F3-SCR-ORG-002          | LIGHT  | 3          |
-| F3       | F3-SCR-ORG-003          | LIGHT  | 3          |
-| F3       | F3-SCR-ORG-004          | MEDIUM | 5          |
-| F3       | F3-SCR-ORG-005          | MEDIUM | 5          |
-| F3       | F3-SCR-ORG-006          | LIGHT  | 2          |
-| F3       | F3-SCR-ORG-007          | LIGHT  | 3          |
-| SEC      | SEC                     | HEAVY  | 28         |
-| ALIGN    | ALIGN                   | LIGHT  | 4          |
+[Insert the actual weight map discovered in Step 1. Format:]
+
+| Phase    | Sub              | Weight | Est. Tasks |
+|----------|-----------------|--------|------------|
+| CORE     | CORE            | [W]    | [N]        |
+| DATA-DOM | DATA-DOM-MASTER | [W]    | [N]        |
+| ...      | ...             | ...    | ...        |
 
 ---
 
-## Phase Map — ORG
+## Phase Map — [MODULE]
+
+[Insert the actual phase → subs map discovered in Step 1. Format:]
 
 ```
 CORE        → CORE
-DATA-DOM    → DATA-DOM-CORE-ENTITIES, DATA-DOM-HEADER
-SVC-API     → SVC-API-CRUD, SVC-API-HEADER, SVC-API-TREE
-DOC         → DOC
-INT-C       → INT-C
-INT-R       → INT-R
-F1          → F1-HEADER, F1-SCR-ORG-001, F1-SCR-ORG-002, F1-SCR-ORG-003, F1-SCR-ORG-004, F1-SCR-ORG-005, F1-SCR-ORG-006, F1-SCR-ORG-007
-F2          → F2-HEADER, F2-SCR-ORG-001, F2-SCR-ORG-002, F2-SCR-ORG-003, F2-SCR-ORG-004, F2-SCR-ORG-005, F2-SCR-ORG-006, F2-SCR-ORG-007
-F3          → F3-HEADER, F3-SCR-ORG-001, F3-SCR-ORG-002, F3-SCR-ORG-003, F3-SCR-ORG-004, F3-SCR-ORG-005, F3-SCR-ORG-006, F3-SCR-ORG-007
-SEC         → SEC
-ALIGN       → ALIGN
+DATA-DOM    → DATA-DOM-MASTER, DATA-DOM-REFERENCE
+SVC-API     → SVC-API-CRUD, SVC-API-INT
+...
 ```
 
 ---
@@ -182,3 +252,34 @@ ALIGN       → ALIGN
 - NEVER implement a blocked OQ item — mark and skip only
 - NEVER advance to next phase without explicit instruction from user
 - ALWAYS update execution-state.json after every sub
+```
+
+---
+
+## Step 4 — Verify and report
+
+After generating both files, print:
+
+```
+══════════════════════════════════════════════════════
+MODULE SETUP COMPLETE: [MODULE]
+══════════════════════════════════════════════════════
+execution-state.json  ✓  governance-repo/modules/[MODULE]/
+execute.md            ✓  .claude/commands/
+
+Phases detected       : [count]
+Total subs detected   : [count]
+
+Weight map:
+  [PHASE] / [SUB]  → [LIGHT/MEDIUM/HEAVY/XL]  ([N] tasks)
+  [PHASE] / [SUB]  → [LIGHT/MEDIUM/HEAVY/XL]  ([N] tasks)
+  ...
+
+Heavy phases (require chunking):
+  [PHASE] → [reason]   (or "none — all phases safe")
+
+To start execution:
+  /project:execute [MODULE] [FIRST_PHASE]
+  → Assessment will be shown before any code is written
+══════════════════════════════════════════════════════
+```
