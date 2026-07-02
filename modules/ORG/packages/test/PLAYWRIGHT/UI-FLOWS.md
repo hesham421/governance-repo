@@ -1,4 +1,5 @@
 <!-- Source: MARK:PLAYWRIGHT / SUB:UI-FLOWS -->
+<!-- Context: see PLAYWRIGHT-HEADER.md for mark-level intro and mandatory scenarios -->
 
   ## SUB:UI-FLOWS (2 — representative screen: SCR-ORG-001)
 

@@ -1,4 +1,5 @@
 <!-- Source: PHASE:SVC-API / SUB:TREE -->
+<!-- Context: see SVC-API-HEADER.md for phase-level strategy, registry table, and intro -->
 
   ### API-ORG-020 — Get Department tree
   GET /api/v1/org/departments/tree?branchFk&isActiveFl? · Returns: full recursive tree structure (nested DTO: id, code, name, nodeType, children[])

@@ -27,7 +27,6 @@ import argparse
 import json
 import shutil
 import sys
-sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 from pathlib import Path
 from datetime import datetime
 
@@ -89,19 +88,6 @@ def scan_source(mod: str, source_path: Path) -> list[dict]:
     return operations
 
 
-def _find_similar(filename: str, source_path: Path) -> str | None:
-    """
-    If filename not found in source, look for a file whose stem starts with
-    the expected stem (case-insensitive). Returns the similar filename or None.
-    """
-    stem = Path(filename).stem.lower()
-    for f in source_path.iterdir():
-        if f.is_file() and f.suffix == Path(filename).suffix:
-            if f.stem.lower().startswith(stem) or stem in f.stem.lower():
-                return f.name
-    return None
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # PLAN — Display what will happen
 # ─────────────────────────────────────────────────────────────────────────────
@@ -133,9 +119,6 @@ def print_plan(mod: str, source_path: Path, operations: list[dict], dry_run: boo
         for op in ops:
             if not op["found"]:
                 status = "NOT FOUND  ✗ skip"
-                similar = _find_similar(op["filename"], source_path)
-                if similar:
-                    status += f"  (did you mean: {similar}?)"
             elif op["exists"]:
                 status = "OVERWRITE  ⚠"
             else:

@@ -286,18 +286,55 @@ def stage1_parse_and_plan(mod: str, version: int, state: dict, base: Path = None
 # FILE WRITER HELPERS
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _write_block(path: Path, block: MarkerBlock, header: str = ""):
-    """Write a single MarkerBlock's content to a file — copy/paste only, no rewording."""
+def _write_block(path: Path, block: "MarkerBlock", header: str = ""):
+    """Write a single MarkerBlock's content to a file — copy/paste only."""
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = ""
-    if header:
-        text += header + "\n\n"
+    text = (header + "\n\n") if header else ""
     text += block.content
     path.write_text(text, encoding="utf-8")
 
 
+def _write_content(path: Path, content: str, header: str = ""):
+    """Write raw text content to a file (used for preamble/header files)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    text = (header + "\n\n") if header else ""
+    text += content
+    path.write_text(text, encoding="utf-8")
+
+
+def _execute_write_plan(write_plan: list[dict]):
+    """Execute all write operations — handles both block-based and content-based entries."""
+    for w in write_plan:
+        if "block" in w:
+            _write_block(w["dest"], w["block"], w.get("header", ""))
+        else:
+            _write_content(w["dest"], w["content"], w.get("header", ""))
+
+
 def _safe_filename(marker_id: str) -> str:
     return marker_id.strip().replace(" ", "-") + ".md"
+
+
+def _preamble_content(block: "MarkerBlock", raw_lines: list[str]) -> str:
+    """
+    Extract content that sits between a container's START marker and its
+    first child SUB/MARK — the 'preamble' that belongs to the container
+    but is outside any SUB. Returns empty string if no preamble exists.
+
+    block      : the PHASE or MARK MarkerBlock whose preamble we want
+    raw_lines  : the full raw lines list from ParseResult (1-indexed usage)
+    """
+    children_with_sub = [c for c in block.children if c.kind in ("sub", "mark")]
+    if not children_with_sub:
+        return ""   # no SUBs — whole content is handled as one unit
+
+    first_child_start = children_with_sub[0].start_line  # 1-indexed
+    # content is raw_lines[block.start_line .. first_child_start - 2]
+    # block.start_line is 1-indexed line OF the START marker itself
+    # content starts at block.start_line (0-indexed = block.start_line)
+    preamble_lines = raw_lines[block.start_line: first_child_start - 1]
+    preamble = "".join(preamble_lines).strip()
+    return preamble
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -355,24 +392,41 @@ def stage2_split_execution(mod: str, version: int, state: dict, plan: dict | Non
         xm_count  = len([x for x in flatten([phase]) if x.kind == "xm"])
 
         if sub_blocks:
-            # Phase split into sub-phases — one file per SUB.
-            # The SUB's full content (including every nested API/XM marker
-            # and its content) is written as-is — atomic markers stay
-            # embedded for in-file addressing, NOT as separate files.
+            # ── Preamble: content between PHASE:START and first SUB:START ──
+            # This content (intro text, tables, strategy notes) belongs to
+            # the Phase but sits outside any SUB — must NOT be lost.
+            preamble = _preamble_content(phase, result.raw_lines)
+            header_filename = _safe_filename(f"{phase.marker_id}-HEADER") if preamble else None
+
+            if preamble:
+                write_plan.append({
+                    "dest": folder / header_filename,
+                    "content": preamble,
+                    "header": f"<!-- Source: PHASE:{phase.marker_id} / PREAMBLE (before first SUB) -->",
+                    "note": "phase-level content (tables, strategy, intro)",
+                })
+
+            # ── One file per SUB — with context reference to HEADER ──
             for sub in sub_blocks:
                 fname = _safe_filename(f"{phase.marker_id}-{sub.marker_id}")
                 sub_api_count = len([a for a in flatten([sub]) if a.kind == "api"])
                 sub_xm_count  = len([x for x in flatten([sub]) if x.kind == "xm"])
+                context_ref = (
+                    f"<!-- Context: see {header_filename} for phase-level "
+                    f"strategy, registry table, and intro -->"
+                    if header_filename else ""
+                )
+                header_line = f"<!-- Source: PHASE:{phase.marker_id} / SUB:{sub.marker_id} -->"
+                if context_ref:
+                    header_line += f"\n{context_ref}"
                 write_plan.append({
                     "dest": folder / fname,
                     "block": sub,
-                    "header": f"<!-- Source: PHASE:{phase.marker_id} / SUB:{sub.marker_id} -->",
+                    "header": header_line,
                     "note": f"{sub_api_count} API(s), {sub_xm_count} XM(s) embedded" if (sub_api_count or sub_xm_count) else "",
                 })
         else:
-            # Whole phase as one file — every API/XM marker inside it stays
-            # embedded in this single file, addressable by searching the
-            # marker (e.g. <!-- API:API-ORG-001:START -->) within it.
+            # Whole phase as one file — no SUBs present
             fname = _safe_filename(phase.marker_id)
             write_plan.append({
                 "dest": folder / fname,
@@ -393,8 +447,7 @@ def stage2_split_execution(mod: str, version: int, state: dict, plan: dict | Non
         print("\n  Stage 2 cancelled — no files written.\n")
         return False
 
-    for w in write_plan:
-        _write_block(w["dest"], w["block"], w["header"])
+    _execute_write_plan(write_plan)
 
     print(f"\n  ✓ {len(write_plan)} files written to packages/execution/")
     mark_stage_complete(state, 2)
@@ -434,30 +487,42 @@ def stage3_split_test(mod: str, version: int, state: dict, plan: dict | None, ba
     write_plan = []
 
     for mark in marks:
-        # mark.marker_id is JUNIT or PLAYWRIGHT
         folder = pkg_root / mark.marker_id
 
         sub_blocks = [c for c in mark.children if c.kind == "sub"]
         tc_count_mark = len([t for t in flatten([mark]) if t.kind == "tc"])
 
         if sub_blocks:
-            # Group all TCs of each SUB into ONE file per SUB.
-            # Individual TC markers stay embedded inside — addressable by
-            # searching <!-- TC:{TC-ID}:START --> within the grouped file,
-            # NOT as separate per-TC files (Section 6.7.5 — Atomic Markers
-            # are addressing, not a file-splitting instruction).
+            # ── Preamble: any content before first SUB inside this MARK ──
+            preamble = _preamble_content(mark, result.raw_lines)
+            header_filename = _safe_filename(f"{mark.marker_id}-HEADER") if preamble else None
+
+            if preamble:
+                write_plan.append({
+                    "dest": folder / header_filename,
+                    "content": preamble,
+                    "header": f"<!-- Source: MARK:{mark.marker_id} / PREAMBLE (before first SUB) -->",
+                    "note": "mark-level content before first SUB",
+                })
+
             for sub in sub_blocks:
                 fname = _safe_filename(sub.marker_id)
                 sub_tc_count = len([t for t in flatten([sub]) if t.kind == "tc"])
+                context_ref = (
+                    f"<!-- Context: see {header_filename} for mark-level "
+                    f"intro and mandatory scenarios -->"
+                    if header_filename else ""
+                )
+                header_line = f"<!-- Source: MARK:{mark.marker_id} / SUB:{sub.marker_id} -->"
+                if context_ref:
+                    header_line += f"\n{context_ref}"
                 write_plan.append({
                     "dest": folder / fname,
                     "block": sub,
-                    "header": f"<!-- Source: MARK:{mark.marker_id} / SUB:{sub.marker_id} -->",
+                    "header": header_line,
                     "note": f"{sub_tc_count} TC(s) embedded",
                 })
         else:
-            # Below threshold — no SUB — group all TCs directly under MARK
-            # into ONE file for the whole mark.
             fname = _safe_filename(mark.marker_id)
             write_plan.append({
                 "dest": folder / fname,
@@ -478,8 +543,7 @@ def stage3_split_test(mod: str, version: int, state: dict, plan: dict | None, ba
         print("\n  Stage 3 cancelled — no files written.\n")
         return False
 
-    for w in write_plan:
-        _write_block(w["dest"], w["block"], w["header"])
+    _execute_write_plan(write_plan)
 
     print(f"\n  ✓ {len(write_plan)} files written to packages/test/")
     mark_stage_complete(state, 3)

@@ -1,4 +1,5 @@
 <!-- Source: MARK:JUNIT / SUB:API-SCENARIOS -->
+<!-- Context: see JUNIT-HEADER.md for mark-level intro and mandatory scenarios -->
 
   ## SUB:API-SCENARIOS — API-ID derived TCs (3 — non-duplicate coverage only)
 

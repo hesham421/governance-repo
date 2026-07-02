@@ -1,4 +1,5 @@
 <!-- Source: PHASE:F2 / SUB:SCR-ORG-004 -->
+<!-- Context: see F2-HEADER.md for phase-level strategy, registry table, and intro -->
 
   ### F2-SERVICE — DepartmentService
   Service class       : `DepartmentService`

@@ -1,4 +1,5 @@
 <!-- Source: PHASE:F2 / SUB:SCR-ORG-001 -->
+<!-- Context: see F2-HEADER.md for phase-level strategy, registry table, and intro -->
 
   ### F2-SERVICE — LegalEntityService
   Service class       : `LegalEntityService`

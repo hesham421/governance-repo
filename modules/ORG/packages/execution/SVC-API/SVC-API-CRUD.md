@@ -1,4 +1,5 @@
 <!-- Source: PHASE:SVC-API / SUB:CRUD -->
+<!-- Context: see SVC-API-HEADER.md for phase-level strategy, registry table, and intro -->
 
   ### API-ORG-001 — Create LegalEntity
   POST /api/v1/org/legal-entities · Body: nameAr, nameEn, entityTypeId, notes? · Returns: LegalEntity (full)

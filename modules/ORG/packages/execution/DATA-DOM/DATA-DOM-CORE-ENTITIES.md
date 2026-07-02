@@ -1,4 +1,5 @@
 <!-- Source: PHASE:DATA-DOM / SUB:CORE-ENTITIES -->
+<!-- Context: see DATA-DOM-HEADER.md for phase-level strategy, registry table, and intro -->
 
   ## ENTITY-ORG-001 — LegalEntity
   Table: ORG_LEGAL_ENTITY · Sequence: ORG_LEGAL_ENTITY_SEQ · Business Code: `LE-NNNNN` (global scope)

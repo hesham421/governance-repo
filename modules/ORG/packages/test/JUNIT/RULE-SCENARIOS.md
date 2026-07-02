@@ -1,4 +1,5 @@
 <!-- Source: MARK:JUNIT / SUB:RULE-SCENARIOS -->
+<!-- Context: see JUNIT-HEADER.md for mark-level intro and mandatory scenarios -->
 
   ## SUB:RULE-SCENARIOS — RULE-ID derived TCs (41)
 

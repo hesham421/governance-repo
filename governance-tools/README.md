@@ -49,12 +49,12 @@ python3 agent3_splitter.py --module ORG --status        # عرض التقدم
 2. python3 agent1_create_structure.py --module FIN
 3. python3 agent2_archive.py --module FIN --source ~/Desktop/FIN-files
 4. python3 agent3_splitter.py --module FIN
-5. النتيجة في: `<repo-root>/modules/FIN/packages/`
+5. النتيجة في: ~/governance-repo/modules/FIN/packages/
 ```
 
 ## هيكل المخرجات
 ```
-<repo-root>/
+~/governance-repo/
 ├── master-registry.md
 ├── modules-registry.json
 └── modules/

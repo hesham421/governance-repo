@@ -1,4 +1,5 @@
 <!-- Source: MARK:PLAYWRIGHT / SUB:INT-FLOW -->
+<!-- Context: see PLAYWRIGHT-HEADER.md for mark-level intro and mandatory scenarios -->
 
   ## SUB:INT-FLOW — Module lifecycle (3 — max per governance)
 

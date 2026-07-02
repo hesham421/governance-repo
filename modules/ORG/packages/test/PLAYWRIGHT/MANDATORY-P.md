@@ -1,4 +1,5 @@
 <!-- Source: MARK:PLAYWRIGHT / SUB:MANDATORY-P -->
+<!-- Context: see PLAYWRIGHT-HEADER.md for mark-level intro and mandatory scenarios -->
 
   ## MANDATORY-P Scenarios (3)
 

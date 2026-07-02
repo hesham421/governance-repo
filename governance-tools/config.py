@@ -13,7 +13,7 @@ import json
 # REPO — Single root for everything
 # ─────────────────────────────────────────────
 
-REPO_BASE_PATH = Path(__file__).resolve().parent.parent
+REPO_BASE_PATH = Path(r"C:\sources\nots\s\System-main-main-main\System-main-main\governance-repo")
 
 # ─────────────────────────────────────────────
 # MODULES — All known module codes

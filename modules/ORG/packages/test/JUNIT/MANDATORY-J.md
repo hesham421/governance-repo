@@ -1,4 +1,5 @@
 <!-- Source: MARK:JUNIT / SUB:MANDATORY-J -->
+<!-- Context: see JUNIT-HEADER.md for mark-level intro and mandatory scenarios -->
 
   ## MANDATORY-J Scenarios (7)
 
