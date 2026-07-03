@@ -1,0 +1,58 @@
+# POST /api/v1/org/location-sites
+
+**Create Location Site**
+
+إنشاء موقع عمل جديد
+
+Operation ID: `API-ORG-039`
+
+**Authentication**
+
+Required (Bearer Authentication).
+
+**Required permission(s)**: LOCATION_SITE_CREATE (found on service:LocationSiteService)
+
+## Request Body
+
+Schema: `LocationSiteCreateRequest` (application/json)
+
+| Field | Type | Required | Constraints | Description | Example |
+|---|---|---|---|---|---|
+| branchFk | integer (int64) | Yes |  | Parent Branch ID - معرف الفرع الأب | 1 |
+| nameAr | string | Yes | maxLength: 200 | Arabic name - الاسم بالعربية | المستودع الرئيسي |
+| nameEn | string | Yes | maxLength: 100 | English name - الاسم بالإنجليزية | Main Warehouse |
+| siteTypeId | string | Yes | maxLength: 50 | Site type code (LOV-ORG-006: OFFICE, WAREHOUSE, FACTORY, SITE, RETAIL) - نوع الموقع | WAREHOUSE |
+| notes | string | No | maxLength: 2000 | Notes - ملاحظات | Central distribution hub |
+
+**Request Example**
+
+```json
+{
+  "branchFk": 1,
+  "nameAr": "المستودع الرئيسي",
+  "nameEn": "Main Warehouse",
+  "siteTypeId": "WAREHOUSE",
+  "notes": "Central distribution hub"
+}
+```
+
+## Response `200` — OK
+
+Shape: `LocationSiteResponse`
+
+| Field | Type | Required | Constraints | Description |
+|---|---|---|---|---|
+| id | integer (int64) | No |  | Unique identifier - المعرف الفريد |
+| locationSiteCode | string | No |  | System-generated business code (LS-[BR_CODE]-NNNNN) - الرمز الآلي |
+| nameAr | string | No |  | Arabic name - الاسم بالعربية |
+| nameEn | string | No |  | English name - الاسم بالإنجليزية |
+| branchFk | integer (int64) | No |  | Parent Branch ID - معرف الفرع الأب |
+| branchCode | string | No |  | Parent Branch business code - رمز الفرع الأب |
+| branchNameEn | string | No |  | Parent Branch English name - اسم الفرع الأب |
+| siteTypeId | string | No |  | Site type code (LOV-ORG-006) - نوع الموقع |
+| isActive | boolean | No |  | Active status - حالة التفعيل |
+| notes | string | No |  | Notes - ملاحظات |
+| createdAt | string (date-time) | No |  | Created timestamp - تاريخ الإنشاء |
+| createdBy | string | No |  | Created by - أنشئ بواسطة |
+| updatedAt | string (date-time) | No |  | Updated timestamp - تاريخ التحديث |
+| updatedBy | string | No |  | Updated by - حُدّث بواسطة |

@@ -1,0 +1,1907 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8" />
+<title>ORG Module API Test Report — 2026-07-04 01:01</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;margin:0;padding:20px;background:#f4f6f9;color:#1a1a2e}
+  h1{margin-bottom:4px} .meta{color:#666;font-size:.9rem;margin-bottom:24px}
+  .summary{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:28px}
+  .card{background:#fff;border-radius:10px;padding:18px 24px;box-shadow:0 2px 6px rgba(0,0,0,.08);min-width:140px;text-align:center}
+  .card .num{font-size:2.2rem;font-weight:700;line-height:1} .card .label{font-size:.8rem;color:#888;margin-top:4px}
+  .card.total .num{color:#3a86ff} .card.pass .num{color:#2ec4b6} .card.fail .num{color:#e63946}
+  .suite-table{background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.08);margin-bottom:28px;overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:.875rem}
+  th{background:#f0f2f5;text-align:left;padding:10px 14px;font-weight:600;color:#555}
+  td{padding:8px 14px;border-top:1px solid #eef0f3;vertical-align:top}
+  tr.pass td{background:#f6fff8} tr.fail td{background:#fff5f5}
+  .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:.75rem;font-weight:700}
+  .badge.pass{background:#d4f7ef;color:#1a7a6f} .badge.fail{background:#fde8e8;color:#b91c1c}
+  .badge.observed{background:#fff3cd;color:#8a6314}
+  .method{display:inline-block;padding:2px 6px;border-radius:4px;font-size:.7rem;font-weight:700;color:#fff}
+  .method.get{background:#3a86ff} .method.post{background:#2ec4b6} .method.put{background:#f4a261}
+  .num{text-align:center} .url{font-size:.75rem;color:#666;word-break:break-all;max-width:260px}
+  .test-name{font-weight:500} .note{font-size:.72rem;color:#999;margin-left:6px}
+  .error-msg{color:#b91c1c;font-size:.8rem}
+  details summary{cursor:pointer;color:#3a86ff;font-size:.78rem;margin-top:4px}
+  pre{background:#f8f8f8;padding:8px;border-radius:4px;font-size:.72rem;overflow-x:auto;max-width:400px;white-space:pre-wrap}
+  section{background:#fff;border-radius:10px;box-shadow:0 2px 6px rgba(0,0,0,.08);margin-bottom:28px;overflow:hidden}
+  section h2{padding:14px 20px;margin:0;background:#f0f2f5;font-size:1rem;border-bottom:1px solid #e0e4ea}
+</style></head>
+<body>
+  <h1>ORG Module API Test Report</h1>
+  <p class="meta">Generated 2026-07-04 01:01:26 &nbsp;·&nbsp;
+     Base URL: http://localhost:7272 &nbsp;·&nbsp; Duration: 1.4s &nbsp;·&nbsp;
+     Source: PLAN-ORG-001, test-plan-org-001.md, index.md, API-ORG-001..044</p>
+  <div class="summary">
+    <div class="card total"><div class="num">64</div><div class="label">Total</div></div>
+    <div class="card pass"><div class="num">47</div><div class="label">Passed</div></div>
+    <div class="card fail"><div class="num">17</div><div class="label">Failed</div></div>
+    <div class="card total"><div class="num">73.4%</div><div class="label">Pass Rate</div></div>
+  </div>
+  <div class="suite-table"><table><thead><tr><th>Suite</th><th>Total</th><th>Pass</th><th>Fail</th><th>Rate</th></tr></thead>
+  <tbody>
+        <tr>
+          <td>Auth</td>
+          <td class="num">1</td>
+          <td class="num pass">1</td>
+          <td class="num fail">0</td>
+          <td class="num">100.0%</td>
+        </tr>
+        <tr>
+          <td>LegalEntity</td>
+          <td class="num">8</td>
+          <td class="num pass">5</td>
+          <td class="num fail">3</td>
+          <td class="num">62.5%</td>
+        </tr>
+        <tr>
+          <td>Branch</td>
+          <td class="num">6</td>
+          <td class="num pass">5</td>
+          <td class="num fail">1</td>
+          <td class="num">83.3%</td>
+        </tr>
+        <tr>
+          <td>Region</td>
+          <td class="num">3</td>
+          <td class="num pass">2</td>
+          <td class="num fail">1</td>
+          <td class="num">66.7%</td>
+        </tr>
+        <tr>
+          <td>ProfitCenter</td>
+          <td class="num">5</td>
+          <td class="num pass">5</td>
+          <td class="num fail">0</td>
+          <td class="num">100.0%</td>
+        </tr>
+        <tr>
+          <td>Department</td>
+          <td class="num">9</td>
+          <td class="num pass">7</td>
+          <td class="num fail">2</td>
+          <td class="num">77.8%</td>
+        </tr>
+        <tr>
+          <td>CostCenter</td>
+          <td class="num">9</td>
+          <td class="num pass">7</td>
+          <td class="num fail">2</td>
+          <td class="num">77.8%</td>
+        </tr>
+        <tr>
+          <td>LocationSite</td>
+          <td class="num">6</td>
+          <td class="num pass">5</td>
+          <td class="num fail">1</td>
+          <td class="num">83.3%</td>
+        </tr>
+        <tr>
+          <td>Deactivation Rules (RULE-ORG-001..005)</td>
+          <td class="num">17</td>
+          <td class="num pass">10</td>
+          <td class="num fail">7</td>
+          <td class="num">58.8%</td>
+        </tr></tbody></table></div>
+  
+        <section>
+          <h2>Auth — 1/1 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Admin Login </td>
+              <td class="url">http://localhost:7272/api/auth/login</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">194ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "accessToken": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJhZG1pbiIsImF1dGhvcml0aWVzIjpbIlBFUk1fQlJBTkNIX0NSRUFURSIsIlBFUk1fQlJBTkNIX0RFTEVURSIsIlBFUk1fQlJBTkNIX1VQREFURSIsIlBFUk1fQlJBTkNIX1ZJRVciLCJQRVJNX0NPU1RfQ0VOVEVSX0NSRUFURSIsIlBFUk1fQ09TVF9DRU5URVJfREVMRVRFIiwiUEVSTV9DT1NUX0NFTlRFUl9VU...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>LegalEntity — 5/8 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LegalEntity </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">26ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 9,
+    "legalEntityCode": "LE-00001",
+    "nameAr": "الشركة القابضة",
+    "nameEn": "Holding Company",
+    "entityTypeId": "HEAD_OFFICE",
+    "isActive": true,
+    "notes": "Primary holding entity",
+    "createdAt": "2026-07-03T21:01:25.501Z",
+    "createdBy": "admin"
+  },
+  ...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get LegalEntity by ID </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">14ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 9,
+    "legalEntityCode": "LE-00001",
+    "nameAr": "الشركة القابضة",
+    "nameEn": "Holding Company",
+    "entityTypeId": "HEAD_OFFICE",
+    "isActive": true,
+    "notes": "Primary holding entity",
+    "createdAt": "2026-07-03T21:01:25.501Z",
+    "createdBy": "admin"
+  },
+  ...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get LegalEntity by ID — Not Found </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/999999999</td>
+              <td class="num">404</td>
+              <td class="num">404</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/legal-entities/999999999",
+    "timestamp": "2026-07-03T21:01:25.528986Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.528987Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update LegalEntity </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">41ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 9,
+    "legalEntityCode": "LE-00001",
+    "nameAr": "الشركة القابضة",
+    "nameEn": "Holding Company",
+    "entityTypeId": "HEAD_OFFICE",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "createdAt": "2026-07-03T21:01:25.501Z",
+    "createdBy": "admin"
+  ...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Search LegalEntities <span class="note">representative search — TC-ORG-042 pattern</span></td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/search</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "content": [
+      {
+        "id": 9,
+        "legalEntityCode": "LE-00001",
+        "nameAr": "الشركة القابضة",
+        "nameEn": "Holding Company",
+        "entityTypeId": "HEAD_OFFICE",
+        "isActive": true,
+        "notes": "Updated by generated script",
+        "createdAt"...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LegalEntity — duplicate name (RULE-ORG-015 / ERR-ORG-0001 / TC-ORG-031) </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities</td>
+              <td class="num">409</td>
+              <td class="num">400</td>
+              <td class="num">12ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0001",
+    "details": "Name already exists within the same parent scope — please choose a different name",
+    "path": "/api/v1/org/legal-entities",
+    "timestamp": "2026-07-03T21:01:25.592299Z"
+  },
+  "message": "Name already exists within the same parent scope ...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update LegalEntity — inject legalEntityCode in payload (RULE-ORG-014 / ERR-ORG-0003 / TC-ORG-029, status-only — error.code unconfirmed) </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9</td>
+              <td class="num">200</td>
+              <td class="num">400</td>
+              <td class="num">18ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 9,
+    "legalEntityCode": "LE-00001",
+    "nameAr": "الشركة القابضة",
+    "nameEn": "Holding Company",
+    "entityTypeId": "HEAD_OFFICE",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "createdAt": "2026-07-03T21:01:25.501Z",
+    "createdBy": "admin",
+ ...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update LegalEntity — inject createdBy audit field (RULE-ORG-016 / ERR-ORG-0003 / TC-ORG-033, status-only — error.code unconfirmed) </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9</td>
+              <td class="num">200</td>
+              <td class="num">400</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 9,
+    "legalEntityCode": "LE-00001",
+    "nameAr": "الشركة القابضة",
+    "nameEn": "Holding Company",
+    "entityTypeId": "HEAD_OFFICE",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "createdAt": "2026-07-03T21:01:25.501Z",
+    "createdBy": "admin",
+ ...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>Branch — 5/6 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Branch </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">16ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "nameAr": "الفرع الرئيسي",
+    "nameEn": "Main Branch",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "branchTypeId": "MAIN_BRANCH",
+    "isActive": true,
+    "notes": ...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get Branch by ID </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/10</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">13ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "nameAr": "الفرع الرئيسي",
+    "nameEn": "Main Branch",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "branchTypeId": "MAIN_BRANCH",
+    "isActive": true,
+    "notes": ...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get Branch by ID — Not Found </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/999999999</td>
+              <td class="num">404</td>
+              <td class="num">404</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/branches/999999999",
+    "timestamp": "2026-07-03T21:01:25.701614Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.701615Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update Branch </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/10</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">21ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "nameAr": "الفرع الرئيسي",
+    "nameEn": "Main Branch",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "branchTypeId": "MAIN_BRANCH",
+    "isActive": true,
+    "notes": ...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Search Branches </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/search</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">22ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "content": [
+      {
+        "id": 10,
+        "branchCode": "BR-LE-00001-00001",
+        "nameAr": "الفرع الرئيسي",
+        "nameEn": "Main Branch",
+        "legalEntityFk": 9,
+        "legalEntityCode": "LE-00001",
+        "legalEntityNameEn": "Holding Company",
+        "branchTy...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Branch under inactive LegalEntity (RULE-ORG-018 / ERR-ORG-0015 / TC-ORG-037) </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches</td>
+              <td class="num">422</td>
+              <td class="num">400</td>
+              <td class="num">11ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0015",
+    "details": "Cannot create a Branch under an inactive Legal Entity",
+    "path": "/api/v1/org/branches",
+    "timestamp": "2026-07-03T21:01:25.790276Z"
+  },
+  "message": "Cannot create a Branch under an inactive Legal Entity",
+  "success": false,
+  "time...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>Region — 2/3 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Region <span class="note">regionTypeIdFk=1 assumes seeded RegionType reference data (no Create API for RegionType)</span></td>
+              <td class="url">http://localhost:7272/api/v1/org/regions</td>
+              <td class="num">404</td>
+              <td class="num">200, 201</td>
+              <td class="num">14ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/regions",
+    "timestamp": "2026-07-03T21:01:25.835529Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.835529Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get Region by ID — Not Found </td>
+              <td class="url">http://localhost:7272/api/v1/org/regions/999999999</td>
+              <td class="num">404</td>
+              <td class="num">404</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/regions/999999999",
+    "timestamp": "2026-07-03T21:01:25.845441Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.845442Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Search Regions </td>
+              <td class="url">http://localhost:7272/api/v1/org/regions/search</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">12ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "content": [],
+    "empty": true,
+    "first": true,
+    "last": true,
+    "number": 0,
+    "numberOfElements": 0,
+    "pageable": {
+      "offset": 0,
+      "pageNumber": 0,
+      "pageSize": 20,
+      "paged": true,
+      "sort": {
+        "empty": false,
+        "sorted": true,
+...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>ProfitCenter — 5/5 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create ProfitCenter </td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">26ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 5,
+    "profitCenterCode": "PC-LE-00001-00001",
+    "nameAr": "مركز ربح التجزئة",
+    "nameEn": "Retail Profit Center",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "isActive": true,
+    "notes": "Covers retail div...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get ProfitCenter by ID </td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers/5</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 5,
+    "profitCenterCode": "PC-LE-00001-00001",
+    "nameAr": "مركز ربح التجزئة",
+    "nameEn": "Retail Profit Center",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "isActive": true,
+    "notes": "Covers retail div...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get ProfitCenter by ID — Not Found </td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers/999999999</td>
+              <td class="num">404</td>
+              <td class="num">404</td>
+              <td class="num">7ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/profit-centers/999999999",
+    "timestamp": "2026-07-03T21:01:25.941985Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.941986Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update ProfitCenter </td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers/5</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">16ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 5,
+    "profitCenterCode": "PC-LE-00001-00001",
+    "nameAr": "مركز ربح التجزئة",
+    "nameEn": "Retail Profit Center",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "isActive": true,
+    "notes": "Updated by genera...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Search ProfitCenters </td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers/search</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "content": [
+      {
+        "id": 5,
+        "profitCenterCode": "PC-LE-00001-00001",
+        "nameAr": "مركز ربح التجزئة",
+        "nameEn": "Retail Profit Center",
+        "legalEntityFk": 9,
+        "legalEntityCode": "LE-00001",
+        "legalEntityNameEn": "Holding Company",
+...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>Department — 7/9 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Department </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">14ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "departmentCode": "DEP-00001-00001",
+    "nameAr": "قسم المبيعات",
+    "nameEn": "Sales Department",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "isActive": true,
+    "notes": "Handles regional sales",
+    "createdAt": "2026-07-03T21:01:26.004Z",
+    "createdBy...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get Department by ID </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/7</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "departmentCode": "DEP-00001-00001",
+    "nameAr": "قسم المبيعات",
+    "nameEn": "Sales Department",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "isActive": true,
+    "notes": "Handles regional sales",
+    "createdAt": "2026-07-03T21:01:26.004Z",
+    "createdBy...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get Department by ID — Not Found </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/999999999</td>
+              <td class="num">404</td>
+              <td class="num">404</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/departments/999999999",
+    "timestamp": "2026-07-03T21:01:26.025610Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:26.025610Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update Department </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/7</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">17ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "departmentCode": "DEP-00001-00001",
+    "nameAr": "قسم المبيعات",
+    "nameEn": "Sales Department",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "createdAt": "2026-07-03T21:01:26.004Z",
+    "crea...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Search Departments </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/search</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "content": [
+      {
+        "id": 7,
+        "departmentCode": "DEP-00001-00001",
+        "nameAr": "قسم المبيعات",
+        "nameEn": "Sales Department",
+        "branchFk": 10,
+        "nodeTypeId": "DETAIL",
+        "isActive": true,
+        "notes": "Updated by generated script...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get Department tree </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/tree?branchFk=10</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">25ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": [
+    {
+      "id": 7,
+      "code": "DEP-00001-00001",
+      "nameAr": "قسم المبيعات",
+      "nameEn": "Sales Department",
+      "nodeTypeId": "DETAIL",
+      "isActive": true,
+      "children": []
+    }
+  ],
+  "message": "OK",
+  "success": true,
+  "timestamp": "2026-07-03T21:01:26.0760...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create child Department (parent for cycle test) </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">15ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 8,
+    "departmentCode": "DEP-00001-00002",
+    "nameAr": "قسم فرعي",
+    "nameEn": "Sales Sub-Department",
+    "branchFk": 10,
+    "parentDepartmentFk": 7,
+    "nodeTypeId": "DETAIL",
+    "isActive": true,
+    "createdAt": "2026-07-03T21:01:26.089Z",
+    "createdBy": "admin"...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update Department — set parent to own child (RULE-ORG-007 / ERR-ORG-0011 / TC-ORG-015) </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/7</td>
+              <td class="num">422</td>
+              <td class="num">400</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0011",
+    "details": "Cannot set parent department: circular reference detected",
+    "path": "/api/v1/org/departments/7",
+    "timestamp": "2026-07-03T21:01:26.102537Z"
+  },
+  "message": "Cannot set parent department: circular reference detected",
+  "success": f...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Department under inactive Branch (RULE-ORG-019 / ERR-ORG-0016 / TC-ORG-039) </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments</td>
+              <td class="num">422</td>
+              <td class="num">400</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0016",
+    "details": "Cannot create organizational unit under an inactive Branch",
+    "path": "/api/v1/org/departments",
+    "timestamp": "2026-07-03T21:01:26.161823Z"
+  },
+  "message": "Cannot create organizational unit under an inactive Branch",
+  "success": f...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>CostCenter — 7/9 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create CostCenter </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">12ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 6,
+    "costCenterCode": "CC-00001-00001",
+    "nameAr": "مركز تكلفة الإنتاج",
+    "nameEn": "Production Cost Center",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "costCenterTypeId": "DIRECT",
+    "isActive": true,
+    "notes": "Main production line",
+    "createdAt":...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get CostCenter by ID </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/6</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 6,
+    "costCenterCode": "CC-00001-00001",
+    "nameAr": "مركز تكلفة الإنتاج",
+    "nameEn": "Production Cost Center",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "costCenterTypeId": "DIRECT",
+    "isActive": true,
+    "notes": "Main production line",
+    "createdAt":...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get CostCenter by ID — Not Found </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/999999999</td>
+              <td class="num">404</td>
+              <td class="num">404</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/cost-centers/999999999",
+    "timestamp": "2026-07-03T21:01:26.186654Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:26.186655Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update CostCenter </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/6</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">15ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 6,
+    "costCenterCode": "CC-00001-00001",
+    "nameAr": "مركز تكلفة الإنتاج",
+    "nameEn": "Production Cost Center",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "costCenterTypeId": "DIRECT",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "crea...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Search CostCenters </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/search</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "content": [
+      {
+        "id": 6,
+        "costCenterCode": "CC-00001-00001",
+        "nameAr": "مركز تكلفة الإنتاج",
+        "nameEn": "Production Cost Center",
+        "branchFk": 10,
+        "nodeTypeId": "DETAIL",
+        "costCenterTypeId": "DIRECT",
+        "isActive": tr...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get CostCenter tree </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/tree?branchFk=10</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">12ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": [
+    {
+      "id": 6,
+      "code": "CC-00001-00001",
+      "nameAr": "مركز تكلفة الإنتاج",
+      "nameEn": "Production Cost Center",
+      "nodeTypeId": "DETAIL",
+      "isActive": true,
+      "children": []
+    }
+  ],
+  "message": "OK",
+  "success": true,
+  "timestamp": "2026-07-03T21...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create child CostCenter (parent for cycle test) </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">12ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "costCenterCode": "CC-00001-00002",
+    "nameAr": "مركز تكلفة فرعي",
+    "nameEn": "Sub Cost Center",
+    "branchFk": 10,
+    "parentCostCenterFk": 6,
+    "nodeTypeId": "DETAIL",
+    "costCenterTypeId": "DIRECT",
+    "isActive": true,
+    "createdAt": "2026-07-03T21:01...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update CostCenter — set parent to own child (RULE-ORG-008 / ERR-ORG-0012 / TC-ORG-017) </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/6</td>
+              <td class="num">422</td>
+              <td class="num">400</td>
+              <td class="num">7ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0012",
+    "details": "Cannot set parent cost center: circular reference detected",
+    "path": "/api/v1/org/cost-centers/6",
+    "timestamp": "2026-07-03T21:01:26.244310Z"
+  },
+  "message": "Cannot set parent cost center: circular reference detected",
+  "success"...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create CostCenter under inactive Branch (RULE-ORG-019 / ERR-ORG-0016 / TC-ORG-039) </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers</td>
+              <td class="num">422</td>
+              <td class="num">400</td>
+              <td class="num">7ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0016",
+    "details": "Cannot create organizational unit under an inactive Branch",
+    "path": "/api/v1/org/cost-centers",
+    "timestamp": "2026-07-03T21:01:26.268007Z"
+  },
+  "message": "Cannot create organizational unit under an inactive Branch",
+  "success": ...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>LocationSite — 5/6 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LocationSite </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites</td>
+              <td class="num">201</td>
+              <td class="num">200, 201</td>
+              <td class="num">11ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "locationSiteCode": "LS-00001-00001",
+    "nameAr": "المستودع الرئيسي",
+    "nameEn": "Main Warehouse",
+    "branchFk": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "branchNameEn": "Main Branch",
+    "siteTypeId": "WAREHOUSE",
+    "isActive": true,
+    "notes": "Cent...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get LocationSite by ID </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites/7</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">7ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "locationSiteCode": "LS-00001-00001",
+    "nameAr": "المستودع الرئيسي",
+    "nameEn": "Main Warehouse",
+    "branchFk": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "branchNameEn": "Main Branch",
+    "siteTypeId": "WAREHOUSE",
+    "isActive": true,
+    "notes": "Cent...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method get">GET</span></td>
+              <td class="test-name">Get LocationSite by ID — Not Found </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites/999999999</td>
+              <td class="num">404</td>
+              <td class="num">404</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/location-sites/999999999",
+    "timestamp": "2026-07-03T21:01:26.316382Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:26.316383Z"
+}</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Update LocationSite </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites/7</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">14ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "locationSiteCode": "LS-00001-00001",
+    "nameAr": "المستودع الرئيسي",
+    "nameEn": "Main Warehouse",
+    "branchFk": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "branchNameEn": "Main Branch",
+    "siteTypeId": "WAREHOUSE",
+    "isActive": true,
+    "notes": "Upda...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Search LocationSites </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites/search</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "content": [
+      {
+        "id": 7,
+        "locationSiteCode": "LS-00001-00001",
+        "nameAr": "المستودع الرئيسي",
+        "nameEn": "Main Warehouse",
+        "branchFk": 10,
+        "branchCode": "BR-LE-00001-00001",
+        "branchNameEn": "Main Branch",
+        "siteTypeI...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LocationSite under inactive Branch (RULE-ORG-019 / ERR-ORG-0016 / TC-ORG-039) </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites</td>
+              <td class="num">422</td>
+              <td class="num">400</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0016",
+    "details": "Cannot create organizational unit under an inactive Branch",
+    "path": "/api/v1/org/location-sites",
+    "timestamp": "2026-07-03T21:01:26.370209Z"
+  },
+  "message": "Cannot create organizational unit under an inactive Branch",
+  "success"...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+        <section>
+          <h2>Deactivation Rules (RULE-ORG-001..005) — 10/17 passed</h2>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Test</th><th>URL</th>
+              <th>Got</th><th>Expected</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate LegalEntity — blocked by active Branch (RULE-ORG-001 / ERR-ORG-0005 / TC-ORG-002) </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9/deactivate</td>
+              <td class="num">422</td>
+              <td class="num">409</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0005",
+    "details": "Cannot deactivate Legal Entity: active branches exist",
+    "path": "/api/v1/org/legal-entities/9/deactivate",
+    "timestamp": "2026-07-03T21:01:26.411728Z"
+  },
+  "message": "Cannot deactivate Legal Entity: active branches exist",
+  "succe...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate Branch — blocked by active Department (RULE-ORG-003 / ERR-ORG-0007 / TC-ORG-006) </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/10/deactivate</td>
+              <td class="num">422</td>
+              <td class="num">409</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0007",
+    "details": "Cannot deactivate Branch: active departments exist",
+    "path": "/api/v1/org/branches/10/deactivate",
+    "timestamp": "2026-07-03T21:01:26.421718Z"
+  },
+  "message": "Cannot deactivate Branch: active departments exist",
+  "success": false,...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate Department (RULE-ORG-003 happy / TC-ORG-005) </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/7/deactivate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "departmentCode": "DEP-00001-00001",
+    "nameAr": "قسم المبيعات",
+    "nameEn": "Sales Department",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "isActive": false,
+    "notes": "Updated by generated script",
+    "createdAt": "2026-07-03T21:01:26.004Z",
+    "cre...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate Branch — blocked by active CostCenter (RULE-ORG-004 / ERR-ORG-0008 / TC-ORG-008) </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/10/deactivate</td>
+              <td class="num">422</td>
+              <td class="num">409</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0007",
+    "details": "Cannot deactivate Branch: active departments exist",
+    "path": "/api/v1/org/branches/10/deactivate",
+    "timestamp": "2026-07-03T21:01:26.439626Z"
+  },
+  "message": "Cannot deactivate Branch: active departments exist",
+  "success": false,...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate CostCenter (RULE-ORG-004 happy / TC-ORG-007) </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/6/deactivate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 6,
+    "costCenterCode": "CC-00001-00001",
+    "nameAr": "مركز تكلفة الإنتاج",
+    "nameEn": "Production Cost Center",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "costCenterTypeId": "DIRECT",
+    "isActive": false,
+    "notes": "Updated by generated script",
+    "cre...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate Branch — blocked by active LocationSite (RULE-ORG-005 / ERR-ORG-0009 / TC-ORG-010) </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/10/deactivate</td>
+              <td class="num">422</td>
+              <td class="num">409</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0007",
+    "details": "Cannot deactivate Branch: active departments exist",
+    "path": "/api/v1/org/branches/10/deactivate",
+    "timestamp": "2026-07-03T21:01:26.457413Z"
+  },
+  "message": "Cannot deactivate Branch: active departments exist",
+  "success": false,...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate LocationSite (RULE-ORG-005 happy / TC-ORG-009) </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites/7/deactivate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "locationSiteCode": "LS-00001-00001",
+    "nameAr": "المستودع الرئيسي",
+    "nameEn": "Main Warehouse",
+    "branchFk": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "branchNameEn": "Main Branch",
+    "siteTypeId": "WAREHOUSE",
+    "isActive": false,
+    "notes": "Upd...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate Branch (happy path, API-ORG-010) </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/10/deactivate</td>
+              <td class="num">422</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0007",
+    "details": "Cannot deactivate Branch: active departments exist",
+    "path": "/api/v1/org/branches/10/deactivate",
+    "timestamp": "2026-07-03T21:01:26.475223Z"
+  },
+  "message": "Cannot deactivate Branch: active departments exist",
+  "success": false,...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate LegalEntity — blocked by active ProfitCenter (RULE-ORG-002 / ERR-ORG-0006 / TC-ORG-004) </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9/deactivate</td>
+              <td class="num">422</td>
+              <td class="num">409</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0005",
+    "details": "Cannot deactivate Legal Entity: active branches exist",
+    "path": "/api/v1/org/legal-entities/9/deactivate",
+    "timestamp": "2026-07-03T21:01:26.483142Z"
+  },
+  "message": "Cannot deactivate Legal Entity: active branches exist",
+  "succe...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate ProfitCenter (RULE-ORG-002 happy / TC-ORG-003) </td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers/5/deactivate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">10ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 5,
+    "profitCenterCode": "PC-LE-00001-00001",
+    "nameAr": "مركز ربح التجزئة",
+    "nameEn": "Retail Profit Center",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "isActive": false,
+    "notes": "Updated by gener...</pre></details></td>
+            </tr>
+            <tr class="fail">
+              <td><span class="badge fail">FAIL</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Deactivate LegalEntity (happy path, API-ORG-004) </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9/deactivate</td>
+              <td class="num">422</td>
+              <td class="num">200</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0005",
+    "details": "Cannot deactivate Legal Entity: active branches exist",
+    "path": "/api/v1/org/legal-entities/9/deactivate",
+    "timestamp": "2026-07-03T21:01:26.501843Z"
+  },
+  "message": "Cannot deactivate Legal Entity: active branches exist",
+  "succe...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Activate Department (API-ORG-024) </td>
+              <td class="url">http://localhost:7272/api/v1/org/departments/7/activate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "departmentCode": "DEP-00001-00001",
+    "nameAr": "قسم المبيعات",
+    "nameEn": "Sales Department",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "createdAt": "2026-07-03T21:01:26.004Z",
+    "crea...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Activate CostCenter (API-ORG-031) </td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers/6/activate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 6,
+    "costCenterCode": "CC-00001-00001",
+    "nameAr": "مركز تكلفة الإنتاج",
+    "nameEn": "Production Cost Center",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "costCenterTypeId": "DIRECT",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "crea...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Activate LocationSite (API-ORG-043) </td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites/7/activate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 7,
+    "locationSiteCode": "LS-00001-00001",
+    "nameAr": "المستودع الرئيسي",
+    "nameEn": "Main Warehouse",
+    "branchFk": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "branchNameEn": "Main Branch",
+    "siteTypeId": "WAREHOUSE",
+    "isActive": true,
+    "notes": "Upda...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Activate Branch (API-ORG-011) </td>
+              <td class="url">http://localhost:7272/api/v1/org/branches/10/activate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">7ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "nameAr": "الفرع الرئيسي",
+    "nameEn": "Main Branch",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "branchTypeId": "MAIN_BRANCH",
+    "isActive": true,
+    "notes": ...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Activate ProfitCenter (API-ORG-037) </td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers/5/activate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 5,
+    "profitCenterCode": "PC-LE-00001-00001",
+    "nameAr": "مركز ربح التجزئة",
+    "nameEn": "Retail Profit Center",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn": "Holding Company",
+    "isActive": true,
+    "notes": "Updated by genera...</pre></details></td>
+            </tr>
+            <tr class="pass">
+              <td><span class="badge pass">PASS</span></td>
+              <td><span class="method put">PUT</span></td>
+              <td class="test-name">Activate LegalEntity (API-ORG-005) </td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities/9/activate</td>
+              <td class="num">200</td>
+              <td class="num">200</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 9,
+    "legalEntityCode": "LE-00001",
+    "nameAr": "الشركة القابضة",
+    "nameEn": "Holding Company",
+    "entityTypeId": "HEAD_OFFICE",
+    "isActive": true,
+    "notes": "Updated by generated script",
+    "createdAt": "2026-07-03T21:01:25.501Z",
+    "createdBy": "admin",
+ ...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+  
+        <section>
+          <h2>⚠️ Exploratory Observations — undocumented expected outcomes, not pass/fail</h2>
+          <p style="padding:0 20px;color:#666;font-size:.85rem">
+            These scenarios test documented constraints (Required/maxLength/type/undocumented
+            enum values) but the API's expected response for violating them isn't specified in
+            any governance document. Review the observed status/body against your intended
+            behavior — do not treat these as failures of the implementation.
+          </p>
+          <table>
+            <thead><tr><th>Status</th><th>Method</th><th>Scenario</th><th>URL</th>
+              <th>Observed</th><th>Source (doc/field)</th><th>Time</th><th>Details</th></tr></thead>
+            <tbody>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LegalEntity — nameEn at maxLength (100 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities</td>
+              <td class="num">201</td>
+              <td class="url">API-ORG-001 nameEn Constraints: maxLength=100</td>
+              <td class="num">14ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 10,
+    "legalEntityCode": "LE-00002",
+    "nameAr": "كيان الحد الأقصى",
+    "nameEn": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "entityTypeId": "HEAD_OFFICE",
+    "isActive": true,
+    "createdAt": "2026-07-03...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LegalEntity — nameEn over maxLength (101 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-001 nameEn Constraints: maxLength=100</td>
+              <td class="num">7ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "Invalid length"
+      }
+    ],
+    "path": "/api/v1/org/legal-entities",
+    "timestamp": "2026-07-03...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LegalEntity — omit required nameEn</td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-001 nameEn Required=Yes</td>
+              <td class="num">9ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "This field is required"
+      }
+    ],
+    "path": "/api/v1/org/legal-entities",
+    "timestamp": "20...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LegalEntity — undocumented entityTypeId value</td>
+              <td class="url">http://localhost:7272/api/v1/org/legal-entities</td>
+              <td class="num">201</td>
+              <td class="url">API-ORG-001 entityTypeId Example: HEAD_OFFICE (only value seen in docs)</td>
+              <td class="num">13ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 11,
+    "legalEntityCode": "LE-00003",
+    "nameAr": "كيان نوع غير معروف",
+    "nameEn": "Unknown Type Entity",
+    "entityTypeId": "ZZZ_UNKNOWN_TYPE",
+    "isActive": true,
+    "createdAt": "2026-07-03T21:01:25.661Z",
+    "createdBy": "admin"
+  },
+  "message": "OK",
+  "succe...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Branch — nameEn at maxLength (100 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/branches</td>
+              <td class="num">201</td>
+              <td class="url">API-ORG-007 nameEn Constraints: maxLength=100</td>
+              <td class="num">16ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 11,
+    "branchCode": "BR-LE-00001-00002",
+    "nameAr": "فرع الحد الأقصى",
+    "nameEn": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEntityNameEn"...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Branch — nameEn over maxLength (101 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/branches</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-007 nameEn Constraints: maxLength=100</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "Invalid length"
+      }
+    ],
+    "path": "/api/v1/org/branches",
+    "timestamp": "2026-07-03T21:01...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Branch — non-existent legalEntityFk (999999999)</td>
+              <td class="url">http://localhost:7272/api/v1/org/branches</td>
+              <td class="num">404</td>
+              <td class="url">API-ORG-007 legalEntityFk field (existence, not active/inactive, distinct from RULE-ORG-018)</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/branches",
+    "timestamp": "2026-07-03T21:01:25.821550Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.821550Z"
+}</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Region — nameEn at maxLength (100 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/regions</td>
+              <td class="num">404</td>
+              <td class="url">API-ORG-013 nameEn Constraints: maxLength=100</td>
+              <td class="num">8ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "ERR_ORG_0004",
+    "details": "Record not found",
+    "path": "/api/v1/org/regions",
+    "timestamp": "2026-07-03T21:01:25.864993Z"
+  },
+  "message": "Record not found",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.864994Z"
+}</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Region — nameEn over maxLength (101 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/regions</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-013 nameEn Constraints: maxLength=100</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "Invalid length"
+      }
+    ],
+    "path": "/api/v1/org/regions",
+    "timestamp": "2026-07-03T21:01:...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Region — string regionTypeIdFk instead of integer</td>
+              <td class="url">http://localhost:7272/api/v1/org/regions</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-013 regionTypeIdFk Type: integer (int64)</td>
+              <td class="num">30ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "INVALID_JSON",
+    "details": "Malformed JSON. Please check the request body syntax.",
+    "path": "/api/v1/org/regions",
+    "timestamp": "2026-07-03T21:01:25.900933Z"
+  },
+  "message": "Invalid request body",
+  "success": false,
+  "timestamp": "2026-07-03T21:01:25.90093...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create ProfitCenter — nameEn at maxLength (100 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers</td>
+              <td class="num">201</td>
+              <td class="url">API-ORG-033 nameEn Constraints: maxLength=100</td>
+              <td class="num">13ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 6,
+    "profitCenterCode": "PC-LE-00001-00002",
+    "nameAr": "مركز ربح الحد الأقصى",
+    "nameEn": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "legalEntityFk": 9,
+    "legalEntityCode": "LE-00001",
+    "legalEnt...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create ProfitCenter — nameEn over maxLength (101 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-033 nameEn Constraints: maxLength=100</td>
+              <td class="num">5ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "Invalid length"
+      }
+    ],
+    "path": "/api/v1/org/profit-centers",
+    "timestamp": "2026-07-03...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create ProfitCenter — omit required nameEn</td>
+              <td class="url">http://localhost:7272/api/v1/org/profit-centers</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-033 nameEn Required=Yes</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "This field is required"
+      }
+    ],
+    "path": "/api/v1/org/profit-centers",
+    "timestamp": "20...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Department — nameEn at maxLength (100 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/departments</td>
+              <td class="num">201</td>
+              <td class="url">API-ORG-019 nameEn Constraints: maxLength=100</td>
+              <td class="num">12ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 9,
+    "departmentCode": "DEP-00001-00003",
+    "nameAr": "قسم الحد الأقصى",
+    "nameEn": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "branchFk": 10,
+    "nodeTypeId": "DETAIL",
+    "isActive": true,
+    "create...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Department — nameEn over maxLength (101 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/departments</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-019 nameEn Constraints: maxLength=100</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "Invalid length"
+      }
+    ],
+    "path": "/api/v1/org/departments",
+    "timestamp": "2026-07-03T21...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create Department — omit required nodeTypeId</td>
+              <td class="url">http://localhost:7272/api/v1/org/departments</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-019 nodeTypeId Required=Yes</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nodeTypeId",
+        "message": "This field is required"
+      },
+      {
+        "field": "nameEn",
+        "message": "This fiel...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create CostCenter — undocumented costCenterTypeId value</td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers</td>
+              <td class="num">409</td>
+              <td class="url">API-ORG-026 costCenterTypeId LOV-ORG-005 examples seen: DIRECT only</td>
+              <td class="num">18ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "DB_CONSTRAINT_VIOLATION",
+    "details": "Data validation failed. Please check the values provided.",
+    "path": "/api/v1/org/cost-centers",
+    "timestamp": "2026-07-03T21:01:26.285991Z"
+  },
+  "message": "Data integrity constraint violated",
+  "success": false,
+  "time...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create CostCenter — omit required nodeTypeId</td>
+              <td class="url">http://localhost:7272/api/v1/org/cost-centers</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-026 nodeTypeId Required=Yes</td>
+              <td class="num">6ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "costCenterTypeId",
+        "message": "This field is required"
+      },
+      {
+        "field": "nodeTypeId",
+        "message": ...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LocationSite — nameEn at maxLength (100 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites</td>
+              <td class="num">201</td>
+              <td class="url">API-ORG-039 nameEn Constraints: maxLength=100</td>
+              <td class="num">11ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "data": {
+    "id": 8,
+    "locationSiteCode": "LS-00001-00002",
+    "nameAr": "موقع الحد الأقصى",
+    "nameEn": "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "branchFk": 10,
+    "branchCode": "BR-LE-00001-00001",
+    "branchNameEn": ...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LocationSite — nameEn over maxLength (101 chars)</td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites</td>
+              <td class="num">400</td>
+              <td class="url">API-ORG-039 nameEn Constraints: maxLength=100</td>
+              <td class="num">5ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "details": "Request validation failed. Please check the field errors.",
+    "fieldErrors": [
+      {
+        "field": "nameEn",
+        "message": "Invalid length"
+      }
+    ],
+    "path": "/api/v1/org/location-sites",
+    "timestamp": "2026-07-03...</pre></details></td>
+            </tr>
+            <tr>
+              <td><span class="badge observed">OBSERVED</span></td>
+              <td><span class="method post">POST</span></td>
+              <td class="test-name">Create LocationSite — undocumented siteTypeId value</td>
+              <td class="url">http://localhost:7272/api/v1/org/location-sites</td>
+              <td class="num">409</td>
+              <td class="url">API-ORG-039 siteTypeId LOV-ORG-006 examples seen: WAREHOUSE only (doc also names OFFICE, FACTORY, SITE, RETAIL as valid codes but SPACESHIP is not one of them)</td>
+              <td class="num">16ms</td>
+              <td><details><summary>Response body</summary><pre>{
+  "error": {
+    "code": "DB_CONSTRAINT_VIOLATION",
+    "details": "Data validation failed. Please check the values provided.",
+    "path": "/api/v1/org/location-sites",
+    "timestamp": "2026-07-03T21:01:26.402633Z"
+  },
+  "message": "Data integrity constraint violated",
+  "success": false,
+  "ti...</pre></details></td>
+            </tr></tbody>
+          </table>
+        </section>
+</body></html>

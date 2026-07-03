@@ -1,0 +1,44 @@
+# POST /api/v1/org/profit-centers/search
+
+**Search Profit Centers**
+
+بحث في مراكز الربح
+
+Operation ID: `API-ORG-034`
+
+**Authentication**
+
+Required (Bearer Authentication).
+
+**Required permission(s)**: PROFIT_CENTER_VIEW (found on service:ProfitCenterService)
+
+## Request Body
+
+Schema: `ProfitCenterSearchRequest` (application/json)
+
+| Field | Type | Required | Constraints | Description |
+|---|---|---|---|---|
+| filters | array<ContractFilter> | No |  |  |
+| sorts | array<ContractSort> | No |  |  |
+| page | integer (int32) | No |  |  |
+| size | integer (int32) | No |  |  |
+
+## Response `200` — OK
+
+Shape: `paginated list of ProfitCenterResponse (see Pagination Envelope in index.md)`
+
+| Field | Type | Required | Constraints | Description |
+|---|---|---|---|---|
+| id | integer (int64) | No |  | Unique identifier - المعرف الفريد |
+| profitCenterCode | string | No |  | System-generated business code (PC-[LE_CODE]-NNNNN) - الرمز الآلي |
+| nameAr | string | No |  | Arabic name - الاسم بالعربية |
+| nameEn | string | No |  | English name - الاسم بالإنجليزية |
+| legalEntityFk | integer (int64) | No |  | Parent Legal Entity ID - معرف الكيان القانوني الأب |
+| legalEntityCode | string | No |  | Parent Legal Entity business code - رمز الكيان القانوني الأب |
+| legalEntityNameEn | string | No |  | Parent Legal Entity English name - اسم الكيان القانوني الأب |
+| isActive | boolean | No |  | Active status - حالة التفعيل |
+| notes | string | No |  | Notes - ملاحظات |
+| createdAt | string (date-time) | No |  | Created timestamp - تاريخ الإنشاء |
+| createdBy | string | No |  | Created by - أنشئ بواسطة |
+| updatedAt | string (date-time) | No |  | Updated timestamp - تاريخ التحديث |
+| updatedBy | string | No |  | Updated by - حُدّث بواسطة |
