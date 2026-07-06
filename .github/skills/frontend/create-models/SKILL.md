@@ -407,6 +407,9 @@ export const MasterLookupFormMapper = {
 | Signal Forms (`FormField`, `SignalForm`) | `FormGroup + FormBuilder` always | B.1.2, B.1.3 |
 | Flexible DTO naming | Field names MUST match backend Response DTO exactly | Blueprint 1.4 |
 
+> **Documented historical exception — not a precedent.** `auth-login`/`auth-register` use Signal Forms and predate strict enforcement of this rule; not sanctioned for reuse. See `create-components`' note on this exception for the concrete defect class (unintercepted native form `submit`) that keeps this prohibition in force.
+
+
 ### Additional prohibition
 Signal Forms experimental API is **permanently forbidden** in FormModel and FormMapper.
 `FormMapper` MUST implement the canonical 4-method const object pattern regardless of Angular version.

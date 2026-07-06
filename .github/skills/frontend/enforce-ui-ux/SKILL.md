@@ -157,11 +157,11 @@ The UI is for **end users**, not developers. No database internals, raw codes, o
 | # | Check | Pass Criteria | Violation |
 |---|-------|--------------|----------|
 | UX.10.1 | Theme persists across sessions | Theme color, dark mode, and container mode persist via `localStorage` through `ThemeService` | Theme resets on page refresh |
-| UX.10.2 | Dark mode toggle works reactively | `ThemeService.toggleDarkMode()` toggles `body.mantis-dark` via effect — no manual DOM in component | Component adds/removes `mantis-dark` class directly |
+| UX.10.2 | Dark mode toggle works reactively | `ThemeService.toggleDarkMode()` toggles `body.mantis-dark` via effect — no manual DOM in component. **Status note:** as of the AVELYNQ migration, this method has zero callers anywhere in the app (its UI trigger, `ConfigurationComponent`, was removed as dead Mantis scaffolding) and dark mode is not currently a supported, migrated experience — `dark.scss` still targets pre-AVELYNQ shell markup. Do not build a new dark-mode UI trigger without a real design-system dark-palette decision first | Component adds/removes `mantis-dark` class directly, or a new dark-mode entry point is added without addressing the underlying unmigrated styling |
 | UX.10.3 | Theme color change works reactively | `ThemeService.setThemeColor(preset)` updates `body[part]` via effect | Component manipulates `body.part` directly |
-| UX.10.4 | Card header actions use flexbox | `.card-header-right` uses `display: flex` — NOT `position: absolute` | Absolute positioning breaks RTL overlap |
-| UX.10.5 | No `::ng-deep` for card-header-right | See enforce-design-system DS.18–DS.20 | See enforce-design-system DS.18–DS.20 |
-| UX.10.6 | Navigation text is translated | See enforce-design-system DS.18–DS.20 | See enforce-design-system DS.18–DS.20 |
+| UX.10.4 | Card header actions use flexbox | `.card-header-right` uses `display: flex` — NOT `position: absolute` (legacy Mantis `.card` only; `avl-card` handles this internally) | Absolute positioning breaks RTL overlap |
+| UX.10.5 | No `::ng-deep` for card-header-right | See enforce-design-system DS.19–DS.20 | See enforce-design-system DS.19–DS.20 |
+| UX.10.6 | Navigation text is translated | See enforce-design-system DS.19–DS.20 | See enforce-design-system DS.19–DS.20 |
 | UX.10.7 | User role is dynamic | See enforce-design-system Arabic font rule | See enforce-design-system Arabic font rule |
 | UX.10.8 | Arabic font is Droid Arabic Naskh | `[lang="ar"]` uses Droid Arabic Naskh from `font-family.scss` — no conflicting font rules | Duplicate `[lang="ar"]` font-family in `styles.scss` |
 
@@ -331,7 +331,7 @@ ngOnInit(): void {
 ```typescript
 // In component template
 <label>{{ 'GL.ACCOUNT_NAME' | translate }}</label>
-<button class="btn btn-primary">{{ 'BUTTONS.SAVE' | translate }}</button>
+<avl-button variant="primary">{{ 'BUTTONS.SAVE' | translate }}</avl-button>
 
 // In TypeScript
 this.notificationService.success(

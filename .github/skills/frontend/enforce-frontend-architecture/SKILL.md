@@ -124,7 +124,7 @@ Validates that frontend feature implementations comply with the ERP architectura
 | F.5.13 | Error effect | `effect()` displays save errors via notification | Inline error display |
 | F.5.14 | Permission check first | Check permission in ngOnInit before loading | Load then check |
 | F.5.15 | Presentational components | `@Input/@Output` only, no services | Smart child components |
-| F.5.16 | Modal self-contained | Own FormGroup + NgbModal lifecycle | Parent managing modal state |
+| F.5.16 | Modal self-contained | Own FormGroup + AvlOverlayRef lifecycle (via `DrawerService`/`DialogService` — NOT `NgbModal`, removed in Phase 3) | Parent managing modal state |
 
 ### Layer 6: Routing and i18n Contracts (10 checks)
 
@@ -148,13 +148,13 @@ Validates that frontend feature implementations comply with the ERP architectura
 | F.7.1 | Theme state via ThemeService | Theme color, dark mode, container mode managed by `ThemeService` signals | Component managing theme state locally |
 | F.7.2 | Theme persistence via localStorage | ThemeService reads/writes `erp_theme_color`, `erp_dark_mode`, `erp_container_mode` | No persistence — theme resets on refresh |
 | F.7.3 | DOM sync via effects | ThemeService uses `effect()` to sync signals to DOM (body classes, part attribute) | Manual DOM manipulation in components |
-| F.7.4 | RTL owned by LanguageService | RTL/LTR management exclusively in `LanguageService` — not ThemeService or ConfigurationComponent | RTL classes set in ConfigurationComponent |
-| F.7.5 | ConfigurationComponent is thin | Only applies font family from MantisConfig — all other concerns delegated to ThemeService | ConfigurationComponent manipulates dark mode, theme color, or container |
+| F.7.4 | RTL owned by LanguageService | RTL/LTR management exclusively in `LanguageService` | RTL classes set anywhere else |
+| F.7.5 | *(retired)* `ConfigurationComponent` removed | `<app-configuration/>` and its files were deleted in the AVELYNQ migration (Phase 7) — it was dead Mantis theme-customizer scaffolding made unreachable via UI, then removed entirely. If you see any reference to `ConfigurationComponent` in the codebase, that's a regression — flag it, do not recreate it | Any new component reintroducing a theme-customizer panel |
 | F.7.6 | No direct body manipulation | Components use ThemeService methods — never `document.body.classList.add()` for theme | `document.body.classList.add('mantis-dark')` in component |
-| F.7.7 | Card-header-right uses flexbox | See enforce-design-system DS.18 (card-header-right flex) | See enforce-design-system DS.18 |
-| F.7.8 | No ::ng-deep card positioning | See enforce-design-system DS.19 (::ng-deep forbidden) | See enforce-design-system DS.19 |
-| F.7.9 | Navigation fully translated | All text in nav-right and nav-content uses `\| translate` pipe | Hardcoded navigation labels |
-| F.7.10 | Single Arabic font source | See enforce-design-system DS.20 + Arabic font rule | See enforce-design-system Arabic font rule |
+| F.7.7 | Card-header-right uses flexbox | See enforce-design-system DS.19 (card-header-right flex, legacy `.card` only — `avl-card` handles this internally) | See enforce-design-system DS.19 |
+| F.7.8 | No ::ng-deep card positioning | See enforce-design-system DS.20 (::ng-deep forbidden) | See enforce-design-system DS.20 |
+| F.7.9 | Navigation fully translated | All text in nav-right and nav-content uses `| translate` pipe | Hardcoded navigation labels |
+| F.7.10 | Single Arabic font source | See enforce-design-system DS.21 + the `--font-arabic`/`body.mantis-rtl` architecture note | See enforce-design-system Arabic font rule |
 
 ---
 
@@ -261,6 +261,14 @@ The following patterns all trigger rejection under rule #7 (template-driven / Si
 - `FormField` from `@angular/forms` experimental
 - `SignalForm`, `signalForm()`  Signal Forms API
 - Any form pattern that does NOT use `FormGroup + FormBuilder`
+
+> **Documented historical exception — not a precedent.** `auth-login` and
+> `auth-register` use Signal Forms and predate strict enforcement of rule
+> #7. This is not sanctioned for reuse — see `create-components`' fuller
+> note on this exception (same wording) for the specific defect class
+> (unintercepted native form `submit`) that is the concrete reason this
+> rule stays in force rather than being relaxed to match observed
+> practice.
 
 ### Conflict resolution trigger
 

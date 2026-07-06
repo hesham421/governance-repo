@@ -127,11 +127,11 @@ Before applying checks, classify any candidate extraction:
 
 | # | Check | Pass Criteria | Violation |
 |---|-------|--------------|-----------|
-| RE.6.1 | Page header uses `ErpPageHeaderComponent` | List pages use `<erp-page-header>` — not custom header divs | `<div class="d-flex justify-content-between"><h1>...</h1></div>` per page |
-| RE.6.2 | Form actions use shared component | Form pages use `<erp-form-actions>` or `<erp-action-bar>` — not inline button markup | Custom save/cancel button HTML per form |
-| RE.6.3 | CRUD cell uses `ErpCrudActionsCellComponent` | Grid action columns use or extend `<erp-crud-actions-cell>` as base | Completely custom action cell without delegating to shared component |
-| RE.6.4 | Empty state uses `ErpEmptyStateComponent` | Empty table/list state uses `<erp-empty-state>` — not custom empty markup | `<div *ngIf="rows.length === 0">No data</div>` |
-| RE.6.5 | Form fields use `ErpFormFieldComponent` | Form label + control + error wrapper uses `<erp-form-field>` | Per-field `<label>` + `<input>` + error `<span>` without shared wrapper |
+| RE.6.1 | Page header uses `ErpPageHeaderComponent` | List pages use `<erp-page-header>` (internally composed from AVELYNQ `Button`/`Breadcrumb` since the AVELYNQ migration) — not custom header divs | `<div class="d-flex justify-content-between"><h1>...</h1></div>` per page |
+| RE.6.2 | Form actions use shared component | Form pages use `<erp-form-actions>` or `<erp-action-bar>` (internally composed from AVELYNQ `Button` since the AVELYNQ migration) — not inline button markup | Custom save/cancel button HTML per form |
+| RE.6.3 | CRUD action cells implement the AG Grid contract directly, each composed from `avl-icon-button` | Grid action-cell components (e.g. `role-actions-cell`, `user-actions-cell`, `page-actions-cell`, `master-lookup-actions-cell`) implement `ICellRendererAngularComp` directly and use `avl-icon-button` internally — see `create-components`' Actions Cell scaffold. **Do NOT extend or delegate to `ErpCrudActionsCellComponent`** — confirmed during the AVELYNQ migration that it does not implement the real `ICellRendererAngularComp` contract and has no live consumers; it is not a base class for new action cells despite its name | A new action cell "extending" `erp-crud-actions-cell`, or a completely custom cell not using `avl-icon-button` |
+| RE.6.4 | Empty state uses `ErpEmptyStateComponent` | Empty table/list state uses `<erp-empty-state>` (internally composed from AVELYNQ `EmptyState` since the AVELYNQ migration) — not custom empty markup | `<div *ngIf="rows.length === 0">No data</div>` |
+| RE.6.5 | Form fields use `ErpFormFieldComponent` | Form label + control + error wrapper uses `<erp-form-field>` (control-agnostic wrapper — does not itself become an `avl-input`; it wraps whatever AVELYNQ form primitive you place inside it) | Per-field `<label>` + `<input>` + error `<span>` without shared wrapper |
 
 ### Layer 7: FormMapper & Model Patterns (4 checks)
 
@@ -296,26 +296,38 @@ export function confirmDeactivateJournal(
 }
 ```
 
-### Pattern E: Action Cell Delegation to Shared Component
+### Pattern E: Action Cell — Real Pattern (verified during AVELYNQ migration)
 
 ```typescript
-// Feature action cell delegates to ErpCrudActionsCellComponent for standard buttons
-// and only adds domain-specific actions
+// Feature action cells implement ICellRendererAngularComp DIRECTLY.
+// erp-crud-actions-cell has no `showEdit`/`showDelete`/`editPermission`/
+// `editClicked` API (or any API) that could be delegated to — it does not
+// implement the AG Grid contract at all, confirmed by inspecting the real
+// component during the AVELYNQ migration (Security/Master Data phases).
+// Compose from avl-icon-button directly, per the create-components
+// Actions Cell scaffold.
 @Component({
+  standalone: true,
+  imports: [ErpPermissionDirective, AvlIconButtonComponent, TranslateModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    @if (rule; as r) {
-      <erp-crud-actions-cell
-        [showEdit]="true"
-        [showDelete]="false"
-        editPermission="PERM_GL_RULE_UPDATE"
-        (editClicked)="onEditClick()"
-      >
-        <!-- Domain-specific extra button projected via ng-content -->
-        <button type="button" ...>
-          <i class="ti ti-toggle-right" aria-hidden="true"></i>
-        </button>
-      </erp-crud-actions-cell>
-    }
+    <div class="d-flex gap-1">
+      <avl-icon-button
+        variant="ghost" size="sm" icon="ti ti-pencil"
+        [erpPermission]="'PERM_GL_RULE_UPDATE'"
+        [label]="'COMMON.EDIT' | translate"
+        (clicked)="onEditClick()">
+      </avl-icon-button>
+      <!-- Domain-specific extra action — same avl-icon-button, no
+           projection/delegation mechanism needed since there's no shared
+           base component to extend -->
+      <avl-icon-button
+        variant="ghost" size="sm" icon="ti ti-toggle-right"
+        [erpPermission]="'PERM_GL_RULE_UPDATE'"
+        [label]="'COMMON.TOGGLE_ACTIVE' | translate"
+        (clicked)="onToggleClick()">
+      </avl-icon-button>
+    </div>
   `
 })
 export class RuleActionsCellComponent implements ICellRendererAngularComp { ... }

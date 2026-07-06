@@ -120,7 +120,7 @@ Master validation skill that comprehensively scores a complete frontend feature 
 | V.4.13 | Error effect displays via notification service | 1 | B.4.12 |
 | V.4.14 | Permission check before loading in ngOnInit | 2 | B.4.13 |
 | V.4.15 | Presentational components: @Input/@Output only | 2 | B.4.14 |
-| V.4.16 | Modal manages own FormGroup + NgbModal | 1 | B.4.15 |
+| V.4.16 | Modal manages own FormGroup + AvlOverlayRef (DrawerService/DialogService) | 1 | B.4.15 |
 | V.4.17 | Grid column defs accept TranslateService | 2 | B.4.6 |
 | V.4.18 | Filter options from grid config function | 1 | B.4.5 |
 
@@ -303,6 +303,9 @@ This master validation skill cross-references all enforcement skills. Run these 
 | Signal Forms usage | Reactive Forms  V.2.2, V.4.9 | -10 points + rejection trigger #7 |
 | `providedIn: 'root'` | Component-scoped  V.3.3, V.3.9 | -10 points + rejection trigger #1 |
 | BehaviorSubject state | Signals only  V.3.7 | -15 points + rejection trigger #2 |
+
+> **Documented historical exception — not a precedent.** `auth-login`/`auth-register` use Signal Forms and predate strict enforcement of this rule; not sanctioned for reuse. See `create-components`' note on this exception for the concrete defect class (unintercepted native form `submit`) that keeps this prohibition in force.
+
 
 ### Future scoring additions (optional)
 When `angular-aria` skill is active, the following can be added to Stage 4 scoring:

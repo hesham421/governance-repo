@@ -228,6 +228,9 @@ VERDICT: APPROVED / APPROVED WITH WARNINGS / REJECTED
 | `model()` |  Restricted | Presentational components only  NEVER in facade-connected components |
 | Signal Forms state |  Prohibited | Use `FormGroup` reactive state pattern (F.5.8, F.5.9) |
 
+> **Documented historical exception — not a precedent.** `auth-login`/`auth-register` use Signal Forms and predate strict enforcement of this rule; not sanctioned for reuse. See `create-components`' note on this exception for the concrete defect class (unintercepted native form `submit`) that keeps this prohibition in force.
+
+
 ### What angular/skills suggests that this skill OVERRIDES
 
 | angular/skills Suggestion | This Skill Requires | Rule |

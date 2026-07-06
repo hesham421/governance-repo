@@ -166,34 +166,45 @@ import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { ICellRendererAngularComp } from 'ag-grid-angular';
 import { ICellRendererParams } from 'ag-grid-community';
 import { ErpPermissionDirective } from '../../../../shared/directives/erp-permission.directive';
+import { AvlIconButtonComponent } from '../../../../shared/buttons/avl-icon-button';
 import { TranslateModule } from '@ngx-translate/core';
 
+// AVELYNQ migration note: actions cells use AvlIconButtonComponent, not raw
+// Bootstrap `btn btn-*` classes. This mirrors the real pattern established
+// across every actions-cell rebuilt during the AVELYNQ migration
+// (role-actions-cell, user-actions-cell, page-actions-cell,
+// master-lookup-actions-cell) — each implements ICellRendererAngularComp
+// directly (the shared `erp-crud-actions-cell` component does NOT
+// implement that contract and is not a substitute here) and is composed
+// from `avl-icon-button` internally. Use Tabler icon classes (`ti ti-*`),
+// never FontAwesome/Bootstrap-Icons (`bi bi-*`, `fa-*`).
 @Component({
   standalone: true,
-  imports: [ErpPermissionDirective, TranslateModule],
+  imports: [ErpPermissionDirective, AvlIconButtonComponent, TranslateModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="d-flex gap-1">
-      <button class="btn btn-sm btn-outline-primary"
-              [erpPermission]="'PERM_<ENTITY_PERM>_UPDATE'"
-              [attr.aria-label]="'COMMON.EDIT' | translate"
-              (click)="onEdit()">
-        <i class="bi bi-pencil" aria-hidden="true"></i>
-      </button>
-      <button class="btn btn-sm"
-              [ngClass]="params?.data?.isActive ? 'btn-outline-warning' : 'btn-outline-success'"
-              [erpPermission]="'PERM_<ENTITY_PERM>_UPDATE'"
-              [attr.aria-label]="(params?.data?.isActive ? 'COMMON.DEACTIVATE' : 'COMMON.ACTIVATE') | translate"
-              [attr.aria-pressed]="params?.data?.isActive"
-              (click)="onToggleActive()">
-        <i [ngClass]="params?.data?.isActive ? 'bi bi-toggle-off' : 'bi bi-toggle-on'" aria-hidden="true"></i>
-      </button>
-      <button class="btn btn-sm btn-outline-danger"
-              [erpPermission]="'PERM_<ENTITY_PERM>_DELETE'"
-              [attr.aria-label]="'COMMON.DELETE' | translate"
-              (click)="onDelete()">
-        <i class="bi bi-trash" aria-hidden="true"></i>
-      </button>
+      <avl-icon-button
+        variant="ghost" size="sm"
+        icon="ti ti-pencil"
+        [erpPermission]="'PERM_<ENTITY_PERM>_UPDATE'"
+        [label]="'COMMON.EDIT' | translate"
+        (clicked)="onEdit()">
+      </avl-icon-button>
+      <avl-icon-button
+        variant="ghost" size="sm"
+        [icon]="params?.data?.isActive ? 'ti ti-toggle-left' : 'ti ti-toggle-right'"
+        [erpPermission]="'PERM_<ENTITY_PERM>_UPDATE'"
+        [label]="(params?.data?.isActive ? 'COMMON.DEACTIVATE' : 'COMMON.ACTIVATE') | translate"
+        (clicked)="onToggleActive()">
+      </avl-icon-button>
+      <avl-icon-button
+        variant="ghost" size="sm"
+        icon="ti ti-trash"
+        [erpPermission]="'PERM_<ENTITY_PERM>_DELETE'"
+        [label]="'COMMON.DELETE' | translate"
+        (clicked)="onDelete()">
+      </avl-icon-button>
     </div>
   `
 })
@@ -338,18 +349,20 @@ export class <ENTITY_NAME>SearchComponent extends ErpListComponent implements On
 ### Template (`<ENTITY_KEBAB>-search.component.html`)
 ```html
 <div class="container-fluid">
-  <!-- Toolbar -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <h4>{{ '<FEATURE>S.TITLE' | translate }}</h4>
-    <div class="d-flex gap-2">
-      <button class="btn btn-primary" [erpPermission]="'PERM_<ENTITY_PERM>_CREATE'" (click)="onCreateNew()">
-        <i class="bi bi-plus-lg"></i> {{ 'COMMON.CREATE' | translate }}
-      </button>
-      <button class="btn btn-outline-secondary" (click)="reload()">
-        <i class="bi bi-arrow-clockwise"></i>
-      </button>
-    </div>
-  </div>
+  <!-- Page header — use the REAL shared component, don't hand-roll title
+       + buttons. erp-page-header's inputs take raw translation KEYS
+       (`titleKey`), NOT pre-translated strings — it applies `| translate`
+       internally. Same convention applies to EVERY `erp-*` shared
+       component's `xKey`-suffixed inputs (labelKey, hintKey, messageKey,
+       etc.) — never pipe `| translate` yourself before passing one in. -->
+  <erp-page-header
+    [titleKey]="'<FEATURE>S.TITLE'"
+    [showAdd]="true"
+    [showRefresh]="true"
+    [addPermission]="'PERM_<ENTITY_PERM>_CREATE'"
+    (addClicked)="onCreateNew()"
+    (refreshClicked)="reload()">
+  </erp-page-header>
 
   <!-- Specification Filter -->
   <app-specification-filter
@@ -358,20 +371,23 @@ export class <ENTITY_NAME>SearchComponent extends ErpListComponent implements On
     (filtersChanged)="onFiltersChanged($event)">
   </app-specification-filter>
 
-  <!-- Loading State -->
+  <!-- Loading State (no AVELYNQ spinner primitive exists yet — Bootstrap's
+       spinner-border is an accepted pragmatic exception here, it carries
+       no brand-identity styling to migrate) -->
   @if (facade.loading()) {
     <div class="text-center py-5"><div class="spinner-border"></div></div>
   }
 
-  <!-- Error State -->
+  <!-- Error State — erp-empty-state has no `type`/"error" variant input;
+       use messageKey (+ optional titleKey/icon) regardless of state -->
   @if (facade.error()) {
-    <app-erp-empty-state [message]="facade.error()! | translate" type="error"></app-erp-empty-state>
+    <erp-empty-state [messageKey]="facade.error()!" icon="ti ti-alert-triangle"></erp-empty-state>
   }
 
   <!-- AG Grid -->
   @if (!facade.loading() && !facade.error()) {
     @if (facade.entities().length === 0) {
-      <app-erp-empty-state [message]="'<FEATURE>S.NO_<ENTITIES>' | translate"></app-erp-empty-state>
+      <erp-empty-state [messageKey]="'<FEATURE>S.NO_<ENTITIES>'"></erp-empty-state>
     } @else {
       <ag-grid-angular
         [theme]="agGridTheme"
@@ -388,6 +404,15 @@ export class <ENTITY_NAME>SearchComponent extends ErpListComponent implements On
   }
 </div>
 ```
+
+Note: `facade.error()` must hold a translation KEY string (e.g.
+`'<FEATURE>S.LOAD_ERROR'`), not an already-translated message — this is
+what makes it valid to pass straight into `[messageKey]` here.
+
+Note: `[theme]="agGridTheme"` must reference the shared AVELYNQ grid theme
+factory (`src/app/shared/ag-grid/agGridTableStyle.ts`) — never a bare
+`ag-theme-quartz`/`ag-theme-alpine` CSS class, and never a one-off theme
+object per feature.
 
 ---
 
@@ -543,42 +568,57 @@ export class <ENTITY_NAME>EntryComponent implements OnInit, OnDestroy {
 ### Template (`<ENTITY_KEBAB>-entry.component.html`)
 ```html
 <div class="container-fluid">
-  <!-- Header -->
-  <div class="d-flex justify-content-between align-items-center mb-3">
-    <div class="d-flex align-items-center gap-2">
-      <app-erp-back-button></app-erp-back-button>
-      <h4>{{ (isEditMode() ? '<FEATURE>S.EDIT' : '<FEATURE>S.CREATE') | translate }}</h4>
-    </div>
-    <div class="d-flex gap-2">
-      <button class="btn btn-secondary" (click)="cancel()">{{ 'COMMON.CANCEL' | translate }}</button>
-      <button class="btn btn-primary"
-              [disabled]="facade.saving()"
-              (click)="save()">
-        {{ 'COMMON.SAVE' | translate }}
-      </button>
-    </div>
+  <!-- Header — title only; Back/Cancel/Save all live in erp-action-bar
+       below (it already renders a Back button via showBack, so do not
+       also place a separate erp-back-button here — that would duplicate
+       it). Real shared component selectors carry NO `app-` prefix. -->
+  <div class="d-flex align-items-center mb-3">
+    <h4>{{ (isEditMode() ? '<FEATURE>S.EDIT' : '<FEATURE>S.CREATE') | translate }}</h4>
   </div>
 
-  <!-- Form -->
+  <!-- Form — Reactive Forms only (see enforce-frontend-architecture rule
+       #7). Every `erp-*` shared component input ending in `Key` takes a
+       RAW translation key, not a pre-translated string — never pipe
+       `| translate` before passing one in; the component does that
+       internally. -->
   <form [formGroup]="form">
-    <app-erp-section [title]="'<FEATURE>S.GENERAL_INFO' | translate">
+    <erp-section [titleKey]="'<FEATURE>S.GENERAL_INFO'">
       <div class="row">
         <div class="col-md-6">
           <erp-form-field
-            [label]="'<FEATURE>S.FIELD_NAME' | translate"
+            [labelKey]="'<FEATURE>S.FIELD_NAME'"
             [control]="form.get('fieldName')!"
-            [hint]="isEditMode() ? ('<FEATURE>S.FIELD_READONLY_HINT' | translate) : ''">
+            [hintKey]="isEditMode() ? '<FEATURE>S.FIELD_READONLY_HINT' : undefined">
+            <avl-input formControlName="fieldName" [readOnly]="isEditMode()"></avl-input>
           </erp-form-field>
         </div>
         <div class="col-md-6">
           <erp-form-field
-            [label]="'<FEATURE>S.DESCRIPTION' | translate"
+            [labelKey]="'<FEATURE>S.DESCRIPTION'"
             [control]="form.get('description')!">
+            <avl-input formControlName="description"></avl-input>
           </erp-form-field>
         </div>
       </div>
-    </app-erp-section>
+    </erp-section>
   </form>
+
+  <!-- Bootstrap `row`/`col-md-*` above are the grid/layout utility
+       exception — AVELYNQ defines no general-purpose form-field grid
+       primitive, only card/stat display grids, so this is not a
+       violation. -->
+
+  <!-- Action bar — self-contained Back/Cancel/Save, do not hand-roll
+       these buttons. saveKey/cancelKey/loadingKey are raw translation
+       keys (defaults already point at COMMON.SAVE/CANCEL/SAVING — only
+       override if this entity needs different copy). -->
+  <erp-action-bar
+    [loading]="facade.saving()"
+    [disabled]="form.invalid"
+    (backClicked)="cancel()"
+    (cancelClicked)="cancel()"
+    (saveClicked)="save()">
+  </erp-action-bar>
 
   <!-- Child Section (if applicable) -->
   @if (isEditMode()) {
@@ -620,27 +660,46 @@ export class <CHILD_NAME>SectionComponent {
 ### Form Modal Component (Self-Contained)
 **Location:** `components/<CHILD_KEBAB>-form-modal/<CHILD_KEBAB>-form-modal.component.ts`
 
+> **AVELYNQ migration note — critical:** `ng-bootstrap` (and `NgbModal`
+> with it) was fully removed from `package.json` in Phase 3 of the
+> AVELYNQ migration. `inject(NgbModal)` will fail to compile — the package
+> no longer exists. Use `DrawerService` (record-detail/create-edit forms —
+> the right choice for this scaffold) or `DialogService` (short
+> confirmations only) from `shared/overlay/`. `AvlOverlayRef`'s `.result`
+> promise and `.componentInstance` setter deliberately mirror
+> `NgbModalRef`'s shape, so the calling convention is nearly identical to
+> the old ngbModal pattern this replaced.
+
 ```typescript
+import { DrawerService } from '../../../../shared/overlay/drawer/drawer.service';
+import { AvlOverlayRef } from '../../../../shared/overlay/avl-overlay-ref';
+
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class <CHILD_NAME>FormModalComponent {
-  private readonly modalService = inject(NgbModal);
+  private readonly drawer = inject(DrawerService);
   private readonly fb = inject(FormBuilder);
+  // Injected automatically when this component is opened as
+  // DrawerService.open()'s componentPortal — see the child injector
+  // DrawerService wires internally.
+  private readonly drawerRef = inject(AvlOverlayRef<<CHILD_NAME>Dto | undefined>);
 
   form!: FormGroup;
   readonly isEditMode = signal(false);
-  private modalRef: any;
 
-  open(entity?: <CHILD_NAME>Dto): void {
+  // Called by the PARENT (e.g. <CHILD_NAME>SectionComponent's (add)/(edit)
+  // handler), which owns the DrawerService.open() call — this component
+  // does NOT call DrawerService itself; it's the content DrawerService
+  // opens. See "Parent wiring" below.
+  initialize(entity?: <CHILD_NAME>Dto): void {
     this.isEditMode.set(!!entity);
     this.buildForm();
     if (entity) {
       this.form.patchValue(entity);
       this.form.get('code')?.disable();  // Immutable in edit
     }
-    this.modalRef = this.modalService.open(/* template */);
   }
 
   onSave(): void {
@@ -651,8 +710,29 @@ export class <CHILD_NAME>FormModalComponent {
       ...formValue,
       sortOrder: formValue.sortOrder ?? undefined  // Preserves 0
     };
-    // Emit save event with request + modalRef
+    this.drawerRef.close(request as <CHILD_NAME>Dto);
   }
+
+  onCancel(): void {
+    this.drawerRef.dismiss();
+  }
+}
+```
+
+**Parent wiring** (in `<CHILD_NAME>SectionComponent`'s host, e.g. the
+Entry page):
+```typescript
+private readonly drawer = inject(DrawerService);
+
+openFormModal(entity?: <CHILD_NAME>Dto): void {
+  const drawerRef = this.drawer.open(<CHILD_NAME>FormModalComponent, {
+    title: entity ? ('<FEATURE>S.EDIT_<CHILD>' | translate) : ('<FEATURE>S.ADD_<CHILD>' | translate),
+    size: 'md'
+  });
+  (drawerRef.componentInstance as <CHILD_NAME>FormModalComponent).initialize(entity);
+  drawerRef.afterClosed().subscribe((result) => {
+    if (result) { /* handle save */ }
+  });
 }
 ```
 
@@ -708,7 +788,7 @@ Before creating new components, verify ALL of the following shared resources are
 | B.4.12 | Error/save-error effects display via `ErpNotificationService` | Contract B.4.12 | Inline error display logic |
 | B.4.13 | Permission check in `ngOnInit` before loading data | Contract B.4.13 | Loading data then checking permission |
 | B.4.14 | Presentational components: `@Input/@Output` only, no service injection | Contract B.4.14 | Smart child components |
-| B.4.15 | Modal manages own `FormGroup` and `NgbModal` lifecycle | Contract B.4.15 | Parent managing modal form state |
+| B.4.15 | Modal manages own `FormGroup` and `AvlOverlayRef` lifecycle (via `DrawerService`/`DialogService`, never `NgbModal` — removed in Phase 3) | Contract B.4.15 | Parent managing modal form state, or any use of `NgbModal` |
 | B.4.16 | Numeric form→DTO mappings use `??` NOT `\|\|` | Contract B.4.16 | `sortOrder \|\| undefined` |
 | B.4.17 | Component SCSS MUST NOT override `.card-header-right` positioning | See enforce-design-system DS.18 (card-header-right flex) | See enforce-design-system DS.18 |
 | B.4.18 | Theme operations use `ThemeService` methods — NEVER direct DOM manipulation | See enforce-design-system DS.19 (::ng-deep forbidden) | See enforce-design-system DS.19 |
@@ -788,6 +868,22 @@ Before creating new components, verify ALL of the following shared resources are
 | `providedIn: 'root'` on providers | `providers: [Facade, ApiService]` in component | B.4.3 — automatic rejection |
 | Plain class properties for state | `signal()` for all state (`isEditMode`, `entityId`, `loading`) | S.1.9 — automatic rejection |
 | `*ngFor` / `*ngIf` directives | `@for` / `@if` Angular 17+ control flow | angular-directives hard rule |
+
+> **Documented historical exception — not a precedent.** `auth-login` and
+> `auth-register` (`src/app/modules/security/authentication/pages/`) use
+> Angular's experimental `@angular/forms/signals` API. These pre-date
+> strict enforcement of this rule and are NOT an approved pattern to
+> replicate — Signal Forms remains prohibited for all new/generated
+> components per B.4.8. If either screen is ever regenerated or
+> significantly reworked, migrate it to Reactive Forms at that time rather
+> than treating its current implementation as sanctioned. Reason for
+> keeping the prohibition (not merely inertia): Signal Forms was found to
+> NOT auto-intercept a `<form>`'s native `submit` event the way
+> `FormGroupDirective`/`NgForm` does — this silently broke login/register
+> end-to-end (the button appeared to work, but the browser performed a
+> native page reload instead of calling the API) until caught by live
+> browser testing. This is exactly the class of subtle, hard-to-review
+> defect this governance system exists to prevent at scale.
 
 ### Amended Automatic Rejection Triggers (component-specific)
 
