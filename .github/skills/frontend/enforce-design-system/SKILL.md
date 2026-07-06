@@ -400,6 +400,12 @@ implies the token might be missing, which it structurally cannot be.
 
 ## ARCHITECTURE NOTES
 
+- **Brand voice/identity** (governs judgment calls not covered by a token
+  table — e.g. copy tone, whether an emoji/playful element belongs
+  anywhere in the UI): AVELYNQ is disciplined, structured, stable,
+  composed, timeless, enterprise-grade. No startup/consumer styling, no
+  emoji anywhere in the UI, no playful/casual microcopy. Bilingual EN/AR
+  with full RTL parity is a baseline requirement, not a nice-to-have.
 - Tokens are the **single source of visual truth** — Bootstrap's own SCSS
   variables/CSS custom properties (`$primary`, `--bs-primary`, etc.) are
   NOT the source of truth for anything anymore; if you find a component
