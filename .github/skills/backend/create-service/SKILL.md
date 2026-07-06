@@ -296,6 +296,9 @@ public ServiceResult<<ENTITY>UsageResponse> getUsage(Long id) {
 
 ## SHARED LAYER MANDATE (`erp-common-utils`)
 
+> Full contract definition (Status→HTTP mapping, exception taxonomy): [`api-contract.md`](../../../context/api-contract.md).
+> SH.2/SH.3 below are this skill's consumption checklist, not a second copy of the contract.
+
 Before creating a service, verify the following shared resources from `erp-common-utils` are consumed — do NOT reinvent:
 
 | # | Requirement | Shared Class | Package |

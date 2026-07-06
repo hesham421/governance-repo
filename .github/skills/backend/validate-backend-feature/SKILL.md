@@ -152,7 +152,7 @@ Run each enforcement skill's full checklist:
 
 ### STAGE 3: Cross-Cutting Validations
 
-#### 3.1 Error Handling (from `enforce-error-handling`)
+#### 3.1 Error Handling (from `enforce-error-handling`; Status/HTTP mapping canonical in [`api-contract.md`](../../../context/api-contract.md) §2)
 ```
 [ ] NO NotFoundException usage anywhere in module
 [ ] ALL not-found → LocalizedException(Status.NOT_FOUND, ...)
@@ -189,7 +189,7 @@ Run each enforcement skill's full checklist:
 [ ] Service does NOT update immutable fields
 ```
 
-#### 3.5 Response Envelope
+#### 3.5 Response Envelope (canonical definition in [`api-contract.md`](../../../context/api-contract.md) §1–2)
 ```
 [ ] Service methods return ServiceResult<T> (except delete)
 [ ] create() uses Status.CREATED

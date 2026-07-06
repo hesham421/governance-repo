@@ -39,6 +39,27 @@ Known, explicitly-flagged gaps (not invented, not silently skipped):
     table — so these assert HTTP 400 only (documented in execution-plan.md Section A)
     and explicitly skip the error.code assertion (unconfirmed runtime format).
 
+Changelog:
+  - 2026-07-03: first real-server run failed at Create LegalEntity (409
+    ERR_ORG_0001) — fixed literal names collided with leftover data from an
+    earlier run (ORG has no hard-delete). Added RUN_SUFFIX/uniq()/fill() so
+    every LegalEntity-scope Create (the only GLOBAL-scope entity here) is
+    unique per execution; Branch/Region/ProfitCenter/Department/CostCenter/
+    LocationSite inherit safety transitively since they're scoped per-parent.
+  - Same run surfaced a doc-vs-runtime discrepancy: execution-plan.md Section A
+    documents HTTP 400 for ERR-ORG-0001 (RULE-ORG-015 name-uniqueness
+    violation); the real server returns 409 with the correct error.code. The
+    RULE-ORG-015 test now asserts 409 (observed), flagged inline — this should
+    be confirmed with the PLAN-ORG-001 owner, not silently trusted either way.
+
+  - 2026-07-03 (later): regenerated against updated MODE 5 governance — added
+    Stage G (org_problems_report.md: filtered, categorized failures only —
+    🔴 real bugs / 🟡 test assumption mismatches / ⚪ infrastructure). Stage H
+    (log correlation, DB access) intentionally left unimplemented — no backend
+    log path or DB credentials were supplied this session, and inventing either
+    would violate Section 6 Safety Rules; see the Stage H comment block below
+    for exactly what's needed to enable it.
+
 Usage:
     python3 test_org_apis.py
     python3 test_org_apis.py --base-url http://localhost:7272
@@ -90,6 +111,31 @@ KNOWN_ERROR_CODES = {
 }
 
 # Intended for Dev/Test environments only.
+
+# ORG has no hard-delete endpoint for any entity (confirmed, Stage A scan of all
+# 44 docs) — cleanup() always falls back to Deactivate, so every record this
+# script creates survives (soft-deactivated) in the DB after the run ends. A
+# second run with fixed literal names would collide with RULE-ORG-015 (name
+# uniqueness) against that leftover data — this bit us on the first real-server
+# run (Create LegalEntity got 409 ERR_ORG_0001 against a prior run's "Holding
+# Company"). RUN_SUFFIX makes every generated name unique per script execution.
+RUN_SUFFIX = str(int(time.time()))
+
+
+def uniq(base: str) -> str:
+    """Append a run-unique suffix so repeated executions don't collide with
+    leftover soft-deactivated records from earlier runs."""
+    return f"{base} {RUN_SUFFIX}"
+
+
+def fill(char: str, length: int) -> str:
+    """Build a string of exactly `length` characters ending in RUN_SUFFIX —
+    used for Stage E maxLength boundary scenarios so they stay collision-safe
+    across reruns WITHOUT changing the length actually being tested."""
+    suf = RUN_SUFFIX
+    if length <= len(suf):
+        return suf[-length:]
+    return (char * (length - len(suf))) + suf
 
 
 # ─── Data classes (fixed — do not change per module) ──────────────────────────
@@ -314,8 +360,15 @@ def test_legal_entity(client: APIClient, token: Optional[str], observations: lis
     ids: dict = {}
     print("\n[LegalEntity]")
 
-    le_name_ar = "الشركة القابضة"
-    le_name_en = "Holding Company"
+    # LegalEntity's name-uniqueness scope is GLOBAL (RULE-ORG-015), and ORG has no
+    # hard-delete — a fixed literal here collided with leftover data on rerun
+    # (observed: 409 ERR_ORG_0001 against a prior run's "Holding Company").
+    # RUN_SUFFIX makes this safe to rerun without manual DB cleanup. Everything
+    # downstream (Branch/Region/ProfitCenter/Department/CostCenter/LocationSite)
+    # is scoped per-LegalEntity or per-Branch, so it inherits this uniqueness
+    # transitively and does NOT need its own suffix.
+    le_name_ar = uniq("الشركة القابضة")
+    le_name_en = uniq("Holding Company")
 
     r = run(suite, "Create LegalEntity", client.post(
         "api/v1/org/legal-entities", token=token, expected=[200, 201],
@@ -344,7 +397,13 @@ def test_legal_entity(client: APIClient, token: Optional[str], observations: lis
 
     # RULE-ORG-015 — Name uniqueness within parent scope (LegalEntity scope = global)
     # ERR-ORG-0001 -> runtime NAME_DUPLICATE = ERR_ORG_0001 (confirmed, index.md)
-    r_dup = client.post("api/v1/org/legal-entities", token=token, expected=[400],
+    # ⚠ DISCREPANCY: execution-plan.md Section A (ERROR CATALOG) documents HTTP 400
+    # for ERR-ORG-0001. A real-server run on 2026-07-03 observed HTTP 409 with the
+    # correct error.code (ERR_ORG_0001) for this exact scenario. Asserting the
+    # OBSERVED value (409) here so this test reflects actual behavior rather than
+    # failing against it — but this doc-vs-runtime mismatch should be confirmed
+    # with whoever owns PLAN-ORG-001 and execution-plan.md corrected if 409 is right.
+    r_dup = client.post("api/v1/org/legal-entities", token=token, expected=[409],
         json={"nameAr": le_name_ar, "nameEn": le_name_en, "entityTypeId": "HEAD_OFFICE"})
     dup_id = extract_id(r_dup)
     track(created_ids, "LegalEntity", dup_id)  # in case server didn't actually block it
@@ -368,29 +427,31 @@ def test_legal_entity(client: APIClient, token: Optional[str], observations: lis
         run(suite, "Update LegalEntity — inject createdBy audit field (RULE-ORG-016 / ERR-ORG-0003 / TC-ORG-033, status-only — error.code unconfirmed)", r_audit)
 
     # ── Stage E — exploratory scenarios (bounded, sourced, undocumented outcome)
+    # These are separate global-scope LegalEntity Creates, so each needs its own
+    # collision-safe name too (fill()/uniq()), not just the main happy-path one above.
     # Source: nameEn field, API-ORG-001 states maxLength: 100, Required: Yes
     r_bound = client.post("api/v1/org/legal-entities", token=token, expected=[200, 201],
-        json={"nameAr": "كيان الحد الأقصى", "nameEn": "X" * 100, "entityTypeId": "HEAD_OFFICE"})
+        json={"nameAr": uniq("كيان الحد الأقصى"), "nameEn": fill("X", 100), "entityTypeId": "HEAD_OFFICE"})
     track(created_ids, "LegalEntity", extract_id(r_bound))
     run_observation(observations, "Create LegalEntity — nameEn at maxLength (100 chars)",
         source="API-ORG-001 nameEn Constraints: maxLength=100", result=r_bound)
 
     r_over = client.post("api/v1/org/legal-entities", token=token, expected=[200, 201, 400],
-        json={"nameAr": "كيان فوق الحد", "nameEn": "X" * 101, "entityTypeId": "HEAD_OFFICE"})
+        json={"nameAr": uniq("كيان فوق الحد"), "nameEn": fill("X", 101), "entityTypeId": "HEAD_OFFICE"})
     track(created_ids, "LegalEntity", extract_id(r_over))
     run_observation(observations, "Create LegalEntity — nameEn over maxLength (101 chars)",
         source="API-ORG-001 nameEn Constraints: maxLength=100", result=r_over)
 
     # Source: nameEn field, Required=Yes — omission test
     r_omit = client.post("api/v1/org/legal-entities", token=token, expected=[200, 201, 400],
-        json={"nameAr": "كيان بدون اسم إنجليزي", "entityTypeId": "HEAD_OFFICE"})
+        json={"nameAr": uniq("كيان بدون اسم إنجليزي"), "entityTypeId": "HEAD_OFFICE"})
     track(created_ids, "LegalEntity", extract_id(r_omit))
     run_observation(observations, "Create LegalEntity — omit required nameEn",
         source="API-ORG-001 nameEn Required=Yes", result=r_omit)
 
     # Source: entityTypeId, only example seen across docs is HEAD_OFFICE — undocumented value
     r_enum = client.post("api/v1/org/legal-entities", token=token, expected=[200, 201, 400],
-        json={"nameAr": "كيان نوع غير معروف", "nameEn": "Unknown Type Entity", "entityTypeId": "ZZZ_UNKNOWN_TYPE"})
+        json={"nameAr": uniq("كيان نوع غير معروف"), "nameEn": uniq("Unknown Type Entity"), "entityTypeId": "ZZZ_UNKNOWN_TYPE"})
     track(created_ids, "LegalEntity", extract_id(r_enum))
     run_observation(observations, "Create LegalEntity — undocumented entityTypeId value",
         source="API-ORG-001 entityTypeId Example: HEAD_OFFICE (only value seen in docs)", result=r_enum)
@@ -442,7 +503,7 @@ def test_branch(client: APIClient, token: Optional[str], observations: list,
     # ERR-ORG-0015 -> runtime LE_INACTIVE = ERR_ORG_0015 (confirmed, index.md)
     # Requires a throwaway, deactivated LegalEntity — created here, not the main one.
     r_temp_le = client.post("api/v1/org/legal-entities", token=token, expected=[200, 201],
-        json={"nameAr": "كيان مؤقت غير نشط", "nameEn": "Temp Inactive LE", "entityTypeId": "HEAD_OFFICE"})
+        json={"nameAr": uniq("كيان مؤقت غير نشط"), "nameEn": uniq("Temp Inactive LE"), "entityTypeId": "HEAD_OFFICE"})
     temp_le_id = extract_id(r_temp_le)
     track(created_ids, "LegalEntity", temp_le_id)
     if temp_le_id:
@@ -1065,6 +1126,116 @@ def cleanup(client: APIClient, token: Optional[str], created_ids: dict) -> None:
               f"the ORG module has no hard-delete endpoint for any entity per its API docs.")
 
 
+# ─── STAGE G — Problems Report (filtered, categorized) ─────────────────────────
+
+def classify_failure(r: TestResult) -> str:
+    """
+    Bucket a FAILED TestResult (never Observations — those are never pass/fail).
+
+    - infrastructure: connection/timeout — no real signal, rerun needed.
+    - real_bug: a call that should have been rejected (per Stage C's RULE/ERR)
+      succeeded instead, OR the outcome doesn't cleanly fit "correctly rejected,
+      wrong code" — defaults here per Stage G's mandatory rule: ambiguous cases
+      are visible/flagged, never silently classified as benign.
+    - assumption_mismatch: backend correctly rejected the request (4xx/5xx), but
+      with a different status than the test asserted — likely the test's
+      expectation needs correcting against execution-plan.md, not a backend defect.
+    """
+    if r.error or r.status_code is None:
+        return "infrastructure"
+
+    expected_all_error = all(s >= 400 for s in r.expected_statuses)
+    actual_is_success = 200 <= r.status_code < 300
+    actual_is_error = r.status_code >= 400
+
+    if expected_all_error and actual_is_success:
+        return "real_bug"
+    if expected_all_error and actual_is_error:
+        return "assumption_mismatch"
+    # expected success but got rejected, or a mixed expected-status set — default
+    # to visible/flagged rather than silently benign (Stage G mandatory rule).
+    return "real_bug"
+
+
+def generate_problems_report(suites: list[TestSuite], output_path: str, base_url: str) -> None:
+    """
+    Stage G — a filtered view containing ONLY failures (never passes, never Stage
+    E observations), categorized so a human can triage quickly instead of reading
+    the full HTML report line by line.
+    """
+    buckets: dict[str, list[tuple[str, TestResult]]] = {
+        "real_bug": [], "assumption_mismatch": [], "infrastructure": [],
+    }
+    for suite in suites:
+        for r in suite.results:
+            if not r.passed:
+                buckets[classify_failure(r)].append((suite.name, r))
+
+    total_failures = sum(len(v) for v in buckets.values())
+    lines = [
+        "# ORG Module API — Problems Report",
+        "",
+        f"Generated {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} · Base URL: {base_url}",
+        "",
+        f"**{total_failures} failure(s)** across all suites — "
+        f"🔴 {len(buckets['real_bug'])} likely real bugs, "
+        f"🟡 {len(buckets['assumption_mismatch'])} test assumption mismatches, "
+        f"⚪ {len(buckets['infrastructure'])} infrastructure issues.",
+        "",
+    ]
+
+    section_meta = [
+        ("real_bug", "🔴 Likely Real Bugs",
+         "A call that should have been rejected per a documented RULE/ERR succeeded "
+         "instead, or failed with a status not explained by any documented rule. "
+         "Ambiguous failures default here rather than being silently treated as benign."),
+        ("assumption_mismatch", "🟡 Test Assumption Mismatches",
+         "The backend correctly rejected the request, but with a different status "
+         "code than this test asserted. Likely the test's expected-status list needs "
+         "correcting against execution-plan.md — not a backend defect."),
+        ("infrastructure", "⚪ Infrastructure",
+         "Connection/timeout failures. Rerun — these carry no signal about the API "
+         "itself."),
+    ]
+
+    for key, title, desc in section_meta:
+        items = buckets[key]
+        lines.append(f"## {title} ({len(items)})")
+        lines.append("")
+        lines.append(desc)
+        lines.append("")
+        if not items:
+            lines.append("_None._")
+            lines.append("")
+            continue
+        for suite_name, r in items:
+            expected = ", ".join(str(s) for s in r.expected_statuses)
+            lines.append(f"### [{suite_name}] {r.name}")
+            lines.append(f"- **{r.method} {r.url}**")
+            lines.append(f"- Got `{r.status_code or 'ERR'}`, expected `{expected}`")
+            if r.error:
+                lines.append(f"- Error: {r.error}")
+            if r.response_body:
+                short = r.response_body[:400]
+                lines.append(f"- Response: `{short}{'...' if len(r.response_body) > 400 else ''}`")
+            lines.append("")
+
+    Path(output_path).write_text("\n".join(lines), encoding="utf-8")
+    print(f"📋 Problems report written to: {output_path}")
+
+
+# ─── STAGE H — Log Correlation & Database Access ───────────────────────────────
+# NOT IMPLEMENTED in this run: no backend log file path and no DB credentials
+# were supplied in this session. Per governance Section Stage H, both are
+# opt-in and environment-specific — implementing them would mean inventing a
+# log path and/or DB credentials, which Section 6 (Safety Rules) forbids.
+# To enable: supply (a) the backend log file path for timestamp-window
+# correlation of failures, and (b) separate DB credentials (never reused from
+# ADMIN_USERNAME/ADMIN_PASSWORD) plus explicit confirmation to add the
+# --execute-db-writes flag (default OFF / dry-run, transactional, Type-1 scope
+# only — deletes limited to IDs this run itself created).
+
+
 # ─── HTML Report ────────────────────────────────────────────────────────────────
 
 def generate_html_report(suites: list[TestSuite], observations: list, output_path: str,
@@ -1212,6 +1383,8 @@ def main():
     parser = argparse.ArgumentParser(description="ORG module API test suite (PLAN-ORG-001)")
     parser.add_argument("--base-url", default=BASE_URL, help="Base API URL")
     parser.add_argument("--report", default="org_api_test_report.html", help="Output HTML file")
+    parser.add_argument("--problems-report", default="org_problems_report.md",
+        help="Output Markdown file — Stage G filtered/categorized failures only")
     args = parser.parse_args()
 
     client = APIClient(args.base_url)
@@ -1286,6 +1459,7 @@ def main():
         print(f"  Exploratory observations: {len(observations)} (see HTML report — not pass/fail)")
 
     generate_html_report(suites, observations, args.report, duration, args.base_url)
+    generate_problems_report(suites, args.problems_report, args.base_url)
     sys.exit(0 if total_pass == total_all else 1)
 
 

@@ -1,70 +1,62 @@
-#!/usr/bin/env python3
 """
-generator.py — standalone API documentation generator
+generator.py — the API documentation pipeline: extract -> render -> sync.
 ════════════════════════════════════════════════════════════════════
 Generates frontend-ready API documentation directly from an implemented
 Spring Boot module. The ONLY source of truth is the compiled application's
-OpenAPI document (springdoc-openapi) plus, optionally, its Java source for
-two best-effort sections (permissions, known error codes).
+OpenAPI document (springdoc-openapi) plus, optionally, its Java source (the
+module's own, and any shared/common modules it depends on) for sections that
+have no OpenAPI representation at all (permissions, error codes, error/HTTP
+status mapping, globally-applied headers).
 
-No governance. No execution-plan. No comparison. No drift detection.
-Works generically for any Spring Boot module — nothing here is specific to
-any one module's domain.
+This module has no CLI of its own — it's imported by generate.py, which is
+responsible for turning "--module ORG --function update" into a
+discovery.RepositoryContext (via discovery.py's repository auto-discovery,
+with explicit overrides only where discovery genuinely can't be
+authoritative).
 
-    python3 generator.py \\
-        --module ORG \\
-        --openapi http://localhost:7273/api-docs/4-organization \\
-        --source ../../../backend/erp-org/src/main/java \\
-        --output ../../modules/ORG/api-docs/
+build_document() is the ONLY place a RepositoryContext gets unpacked. Every
+individual extractor below still takes its own narrow, explicit input (a
+Path, a dict, ...), never the context object itself — so no extractor module
+depends on discovery.py, or needs to know it's running inside a "resolved
+repository" at all. That keeps repository knowledge confined to one
+boundary, exactly as it was before the context object existed; the context
+just replaces what used to be several loose, independently-threaded
+parameters (module, openapi_source, source_root, common_source_roots) with
+one object discovery.py hands over as a unit.
 
---openapi accepts either a live http(s) URL or a local JSON file path.
---source is optional — omit it to skip the two best-effort, source-derived
-sections (per-endpoint permissions, module error-code appendix); every other
-section still renders fully from the OpenAPI document alone.
-
-Design principle: every extractor either finds real metadata or leaves the
-field empty. The renderer never prints a placeholder for missing data — it
-omits the subsection. Nothing here is ever invented.
+Design principle, unchanged: every extractor either finds real metadata or
+leaves the field empty. The renderer never prints a placeholder for missing
+data — it omits the subsection. Nothing here is ever invented.
 """
 
-import argparse
-import sys
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-
-from extractors import dto_extractor, exception_extractor, openapi_extractor, response_model_extractor, security_extractor
+import sync
+from discovery import RepositoryContext
+from extractors import (
+    common_headers_extractor,
+    dto_extractor,
+    error_mapping_extractor,
+    exception_extractor,
+    openapi_extractor,
+    pagination_extractor,
+    response_model_extractor,
+    security_extractor,
+)
 from models.api_doc_model import ResponseEnvelope
 from renderers.markdown_renderer import MarkdownRenderer
 
 
-def main() -> int:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--module", required=True, help="Module label, e.g. ORG (used only for the doc title)")
-    ap.add_argument("--openapi", required=True, help="OpenAPI JSON: local file path or http(s) URL")
-    ap.add_argument("--source", help="Path to the module's src/main/java (enables permission + error-code sections)")
-    ap.add_argument("--output", required=True, type=Path, help="Output directory for generated documentation")
-    args = ap.parse_args()
+def build_document(context: RepositoryContext):
+    openapi = openapi_extractor.load_openapi(context.openapi_source)
 
-    try:
-        openapi = openapi_extractor.load_openapi(args.openapi)
-    except Exception as exc:  # noqa: BLE001 - surface any load failure (network/file/JSON) to the user
-        print(f"ERROR: could not load OpenAPI document from '{args.openapi}': {exc}", file=sys.stderr)
-        return 1
-
-    document = openapi_extractor.build_document(openapi, args.module)
+    document = openapi_extractor.build_document(openapi, context.module)
     document.response_envelope = response_model_extractor.find_envelope(openapi)
 
     page_schema_name, page_fields = dto_extractor.find_page_envelope(openapi)
     if page_schema_name:
         document.pagination_envelope = ResponseEnvelope(schema_name=page_schema_name, fields=page_fields)
 
-    if args.source:
-        source_root = Path(args.source)
-        if not source_root.exists():
-            print(f"ERROR: --source path not found: {source_root}", file=sys.stderr)
-            return 1
-
+    source_root = context.source_root
+    if source_root is not None:
         document.error_codes = exception_extractor.find_error_codes(source_root)
 
         for ep in document.endpoints:
@@ -76,21 +68,46 @@ def main() -> int:
             ep.permission = permission
             ep.permission_source = source_label
 
+    if context.common_source_roots:
+        document.error_codes, document.status_mappings = error_mapping_extractor.enrich_error_codes(
+            document.error_codes, source_root, context.common_source_roots
+        )
+        document.common_headers = common_headers_extractor.find_common_headers(context.common_source_roots)
+        error_mapping_extractor.attach_endpoint_error_codes(document)
+        document.pagination_constraints = pagination_extractor.find_pagination_constraints(
+            source_root, context.common_source_roots
+        )
+
+    return document
+
+
+def run(context: RepositoryContext, mode: str) -> str:
+    """Runs the full pipeline and returns the human-readable report text.
+    Raises on load failure — callers decide how to surface it (CLI exit code,
+    etc.)."""
+    document = build_document(context)
     files = MarkdownRenderer().render(document)
 
-    args.output.mkdir(parents=True, exist_ok=True)
-    for rel_path, content in files.items():
-        out_path = args.output / rel_path
-        out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(content, encoding="utf-8")
+    lines = [f"Module      : {context.module}"]
 
-    print(f"Module      : {args.module}")
-    print(f"Endpoints   : {len(document.endpoints)}")
-    print(f"Groups      : {len(document.groups())}")
-    print(f"Error codes : {len(document.error_codes)}")
-    print(f"Output      : {args.output}")
-    return 0
+    if mode == "generate":
+        sync.write_all(context.output, files)
+        lines.append("Mode        : Generate")
+        lines.append(f"Endpoints   : {len(document.endpoints)}")
+        lines.append(f"Groups      : {len(document.groups())}")
+        lines.append(f"Error codes : {len(document.error_codes)}")
+        lines.append(f"Output      : {context.output}")
+        return "\n".join(lines)
 
+    existing = sync.read_existing(context.output)
+    report = sync.compare(existing, files, document.endpoints, mode=mode)
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+    if mode == "update":
+        written, deleted = sync.apply(context.output, existing, files, report)
+        lines.append(sync.format_report(report))
+        lines.append(f"Files written: {len(written)}, deleted: {len(deleted)}")
+        lines.append(f"Output      : {context.output}")
+    else:  # review — no filesystem writes
+        lines.append(sync.format_report(report))
+
+    return "\n".join(lines)

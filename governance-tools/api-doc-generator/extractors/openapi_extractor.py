@@ -56,9 +56,10 @@ def _operation_auth(openapi: dict, operation: dict) -> tuple[Optional[bool], lis
     return bool(effective), scheme_names
 
 
-def _parameters(operation: dict) -> tuple[list[Parameter], list[Parameter]]:
+def _parameters(operation: dict) -> tuple[list[Parameter], list[Parameter], list[Parameter]]:
     path_params: list[Parameter] = []
     query_params: list[Parameter] = []
+    header_params: list[Parameter] = []
     for p in operation.get("parameters", []):
         schema = p.get("schema", {})
         param = Parameter(
@@ -73,7 +74,9 @@ def _parameters(operation: dict) -> tuple[list[Parameter], list[Parameter]]:
             path_params.append(param)
         elif param.location == "query":
             query_params.append(param)
-    return path_params, query_params
+        elif param.location == "header":
+            header_params.append(param)
+    return path_params, query_params, header_params
 
 
 def _request_body(operation: dict, components: dict) -> Optional[RequestBody]:
@@ -119,6 +122,7 @@ def build_document(openapi: dict, module: str) -> ApiDocument:
         module=module,
         title=info.get("title"),
         description=info.get("description"),
+        version=info.get("version"),
         servers=[s.get("url", "") for s in openapi.get("servers", [])],
         security_schemes=_security_schemes(openapi),
     )
@@ -127,7 +131,7 @@ def build_document(openapi: dict, module: str) -> ApiDocument:
         for method, operation in methods.items():
             if method.lower() not in HTTP_METHODS:
                 continue
-            path_params, query_params = _parameters(operation)
+            path_params, query_params, header_params = _parameters(operation)
             requires_auth, scheme_names = _operation_auth(openapi, operation)
             tags = operation.get("tags") or []
 
@@ -140,6 +144,7 @@ def build_document(openapi: dict, module: str) -> ApiDocument:
                 description=operation.get("description"),
                 path_params=path_params,
                 query_params=query_params,
+                header_params=header_params,
                 request_body=_request_body(operation, components),
                 responses=_responses(operation, components),
                 requires_auth=requires_auth,

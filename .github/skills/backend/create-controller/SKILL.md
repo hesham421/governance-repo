@@ -193,6 +193,9 @@ public ResponseEntity<ApiResponse<List<<Child>OptionResponse>>> getDetailOptions
 
 ## SHARED LAYER MANDATE (`erp-common-utils`)
 
+> Full contract definition (envelope shape, exception→HTTP mapping): [`api-contract.md`](../../../context/api-contract.md).
+> The table below is this skill's consumption checklist, not a second copy of the contract.
+
 Before creating a controller, verify the following shared resources from `erp-common-utils` are consumed — do NOT reinvent:
 
 | # | Requirement | Shared Class | Package |
@@ -231,6 +234,9 @@ Before creating a controller, verify the following shared resources from `erp-co
 | A.6.12 | ZERO business logic — pure delegation | YES |
 
 ### HTTP Status Mapping (Automatic)
+
+> Full mapping (all `Status` values, not just the ones a controller generator touches):
+> [`api-contract.md`](../../../context/api-contract.md) §2.
 
 | ServiceResult Status | HTTP Status | How |
 |---------------------|-------------|-----|

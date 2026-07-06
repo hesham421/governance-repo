@@ -36,6 +36,10 @@ Entity → Repository → DTOs → Mapper → Error Codes → Permissions → Se
 
 ## Key Contracts
 
+> The full public REST contract (envelope shape, exception→HTTP mapping, error-code format) is
+> canonically defined once in [`api-contract.md`](api-contract.md) — the rows below are a
+> summary, not a second copy.
+
 | Concern | Rule |
 |---|---|
 | Response envelope | Service returns `ServiceResult<T>`; controller calls `operationCode.craftResponse()` |

@@ -7,14 +7,47 @@ absent data just means the subsection doesn't get written.
 
 import json
 import re
+from dataclasses import replace
 
-from models.api_doc_model import ApiDocument, Endpoint, ErrorCode, FieldSpec, Parameter, ResponseEnvelope
+from models.api_doc_model import (
+    ApiDocument,
+    Endpoint,
+    ErrorCode,
+    FieldSpec,
+    PaginationConstraints,
+    Parameter,
+    ResponseEnvelope,
+    StatusMapping,
+)
 from renderers.base import Renderer
 
 
 def _slugify(text: str) -> str:
     text = re.sub(r"[^A-Za-z0-9]+", "-", text.strip()).strip("-").lower()
     return text or "root"
+
+
+def _flatten_fields(fields: list[FieldSpec], prefix: str = "") -> list[FieldSpec]:
+    """Flattens FieldSpec.nested (populated by dto_extractor's recursive
+    schema expansion) into dotted-path rows -- parent.child, or parent[].child
+    for array-of-object fields -- so a nested DTO like a search filter or a
+    field-error item renders as real rows instead of an opaque type name.
+    Self-referential schemas (FieldSpec.recursive_ref) get one explanatory
+    row instead of expanding forever."""
+    flat: list[FieldSpec] = []
+    for f in fields:
+        row = replace(f, name=f"{prefix}{f.name}") if prefix else f
+        flat.append(row)
+        if f.recursive_ref:
+            flat.append(FieldSpec(
+                name=f"{prefix}{f.name}[]" if f.is_array else f"{prefix}{f.name}",
+                type=f"same shape as `{f.recursive_ref}` (recursive)",
+                description="Recursive — repeats this field's own structure.",
+            ))
+        elif f.nested:
+            child_prefix = f"{prefix}{f.name}[]." if f.is_array else f"{prefix}{f.name}."
+            flat.extend(_flatten_fields(f.nested, child_prefix))
+    return flat
 
 
 def _constraints_text(f: FieldSpec) -> str:
@@ -31,6 +64,7 @@ def _constraints_text(f: FieldSpec) -> str:
 
 
 def _field_table(fields: list[FieldSpec]) -> str:
+    fields = _flatten_fields(fields)
     if not fields:
         return ""
     has_examples = any(f.example for f in fields)
@@ -58,18 +92,44 @@ def _param_table(params: list[Parameter]) -> str:
     return "\n".join(lines)
 
 
-def _example_json(fields: list[FieldSpec]) -> str:
-    obj = {}
+def _build_example_value(fields: list[FieldSpec]) -> tuple[dict, bool]:
+    """Builds a JSON object from whatever real, backend-provided examples
+    exist (recursing into FieldSpec.nested), and reports whether every field
+    actually contributed one. Never invents a value for a field that has
+    none -- that field is simply left out of the object, and `complete` comes
+    back False so the caller can say so instead of implying full coverage."""
+    obj: dict = {}
+    complete = True
     for f in fields:
+        if f.recursive_ref:
+            complete = False
+            continue
+        if f.nested:
+            nested_obj, nested_complete = _build_example_value(f.nested)
+            if not nested_obj:
+                complete = False
+                continue
+            obj[f.name] = [nested_obj] if f.is_array else nested_obj
+            complete = complete and nested_complete
+            continue
         if not f.example:
+            complete = False
             continue
         try:
             obj[f.name] = json.loads(f.example)
         except (json.JSONDecodeError, TypeError):
             obj[f.name] = f.example
+    return obj, complete
+
+
+def _example_json(fields: list[FieldSpec]) -> str:
+    obj, complete = _build_example_value(fields)
     if not obj:
         return ""
-    return "```json\n" + json.dumps(obj, indent=2, ensure_ascii=False) + "\n```"
+    code = "```json\n" + json.dumps(obj, indent=2, ensure_ascii=False) + "\n```"
+    if complete:
+        return code
+    return "_(partial — only fields with a documented example are shown)_\n\n" + code
 
 
 def _envelope_section(title: str, envelope: ResponseEnvelope | None) -> str:
@@ -89,9 +149,66 @@ def _envelope_section(title: str, envelope: ResponseEnvelope | None) -> str:
 def _error_codes_section(codes: list[ErrorCode]) -> str:
     if not codes:
         return ""
-    lines = ["## Known Error Codes", "", "| Code | Value | Source |", "|---|---|---|"]
+    has_status = any(c.status or c.http_status for c in codes)
+    header = ["Code", "Value", "Source"]
+    if has_status:
+        header += ["Status", "HTTP Status"]
+    lines = ["## Known Error Codes", "", "| " + " | ".join(header) + " |", "|" + "|".join(["---"] * len(header)) + "|"]
     for c in codes:
-        lines.append(f"| {c.name} | `{c.value}` | {c.source_file} |")
+        row = [c.name, f"`{c.value}`", c.source_file]
+        if has_status:
+            row += [c.status or "", c.http_status or ""]
+        lines.append("| " + " | ".join(row) + " |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _status_mappings_section(mappings: list[StatusMapping]) -> str:
+    if not mappings:
+        return ""
+    lines = [
+        "## Status -> HTTP Status Reference",
+        "",
+        "Shared, module-independent mapping every business error code's `Status` "
+        "resolves through (see each error code's own Status column above, when known).",
+        "",
+        "| Status | HTTP Status | Category |",
+        "|---|---|---|",
+    ]
+    for m in mappings:
+        lines.append(f"| {m.name} | {m.http_status} | {m.category or ''} |")
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _pagination_constraints_section(c: PaginationConstraints | None) -> str:
+    if not c:
+        return ""
+    rows = [
+        ("Default page", c.default_page),
+        ("Default size", c.default_size),
+        ("Minimum size", c.min_size),
+        ("Maximum size", c.max_size),
+        ("Maximum page number", c.max_page_number),
+    ]
+    present = [(label, value) for label, value in rows if value is not None]
+    if not present:
+        return ""
+    lines = ["## Pagination Constraints", ""]
+    if c.source_file:
+        lines.append(f"Source: `{c.source_file}`")
+        lines.append("")
+    lines += ["| Constraint | Value |", "|---|---|"]
+    lines += [f"| {label} | {value} |" for label, value in present]
+    lines.append("")
+    return "\n".join(lines)
+
+
+def _common_headers_section(headers: list[Parameter]) -> str:
+    if not headers:
+        return ""
+    lines = ["## Common Headers", "", "Applied globally by shared middleware — not endpoint-specific.", ""]
+    lines.append(_param_table(headers))
     lines.append("")
     return "\n".join(lines)
 
@@ -135,6 +252,10 @@ def _endpoint_markdown(ep: Endpoint) -> str:
     if query_table:
         parts += ["## Query Parameters", "", query_table, ""]
 
+    header_table = _param_table(ep.header_params)
+    if header_table:
+        parts += ["## Headers", "", header_table, ""]
+
     if ep.request_body:
         parts.append("## Request Body")
         parts.append("")
@@ -174,6 +295,19 @@ def _endpoint_markdown(ep: Endpoint) -> str:
             parts.append(example)
             parts.append("")
 
+    if ep.possible_errors:
+        parts.append("## Other Possible Responses")
+        parts.append("")
+        parts.append("Structurally guaranteed by this endpoint's own shape (auth requirement, "
+                      "permission check, request body) combined with the shared framework's "
+                      "exception handling — not specific business errors.")
+        parts.append("")
+        parts.append("| HTTP Status | Code | Why |")
+        parts.append("|---|---|---|")
+        for perr in ep.possible_errors:
+            parts.append(f"| {perr.http_status} | {perr.code} | {perr.reason} |")
+        parts.append("")
+
     return "\n".join(parts).rstrip() + "\n"
 
 
@@ -195,6 +329,9 @@ def _index_markdown(doc: ApiDocument) -> str:
     if doc.description:
         parts.append(doc.description)
         parts.append("")
+    if doc.version:
+        parts.append(f"API version: `{doc.version}`")
+        parts.append("")
 
     if doc.servers:
         parts.append("## Servers")
@@ -213,9 +350,12 @@ def _index_markdown(doc: ApiDocument) -> str:
             parts.append(f"- **{s.name}**: {kind}{fmt}{desc}")
         parts.append("")
 
+    parts.append(_common_headers_section(doc.common_headers))
     parts.append(_envelope_section("Common Response Envelope", doc.response_envelope))
     parts.append(_envelope_section("Pagination Envelope", doc.pagination_envelope))
+    parts.append(_pagination_constraints_section(doc.pagination_constraints))
     parts.append(_error_codes_section(doc.error_codes))
+    parts.append(_status_mappings_section(doc.status_mappings))
 
     parts.append("## API Catalog")
     parts.append("")

@@ -157,6 +157,10 @@ export class <ENTITY_NAME>ApiService extends BaseApiService {
 
 ## SHARED LAYER MANDATE
 
+> The `ApiResponse<T>` envelope this section refers to (SH.6, B.2.2) is canonically defined in
+> the backend governance doc [`api-contract.md`](../../../context/api-contract.md) §1 — frontend
+> code never constructs or inspects it directly; `BaseApiService` unwraps it once, centrally.
+
 Before creating a new API service, verify the following shared resources are consumed — do NOT reinvent:
 
 | # | Requirement | Shared Resource | Import Path |

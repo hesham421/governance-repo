@@ -21,7 +21,10 @@ description: "ERROR HANDLING ENFORCER — ensures ALL exceptions use LocalizedEx
 - For frontend error handling — use `enforce-frontend-architecture` or `enforce-state-management`
 - For HTTP status code configuration in nginx/Spring Security — that is deployment or security configuration
 - When reviewing code that has no exception handling (report as missing, not a validation run)
-- For `GlobalExceptionHandler` itself — that file is read-only governance infrastructure
+- For `GlobalExceptionHandler` itself — that file is read-only governance infrastructure. Its
+  canonical definition (which exceptions map to which `Status`/HTTP code) now lives in
+  [`api-contract.md`](../../../context/api-contract.md); this skill still validates a module's
+  *usage* of that taxonomy, it does not own or modify the taxonomy itself.
 
 ## Responsibilities
 
@@ -73,12 +76,15 @@ description: "ERROR HANDLING ENFORCER — ensures ALL exceptions use LocalizedEx
 
 ### CHECK 2: LocalizedException Status Usage
 
+> Canonical for all of Status/HTTP mapping: [`api-contract.md`](../../../context/api-contract.md)
+> §2, including the resolved deactivation/deletion-blocked-by-children guidance below.
+
 | Scenario | Required Status | Error Code Pattern |
 |----------|-----------------|-------------------|
 | Entity not found | `Status.NOT_FOUND` | `<ENTITY>_NOT_FOUND` |
 | Duplicate key/code | `Status.ALREADY_EXISTS` | `<ENTITY>_KEY_DUPLICATE` |
 | FK constraint violation | `Status.CONFLICT` | `<ENTITY>_FK_VIOLATION` |
-| Cannot deactivate (active children) | `Status.CONFLICT` | `<ENTITY>_ACTIVE_CHILDREN_EXIST` |
+| Cannot deactivate (active children) | `Status.CONFLICT` — NOT `BUSINESS_RULE_VIOLATION`, see `api-contract.md` §2 | `<ENTITY>_ACTIVE_CHILDREN_EXIST` |
 | Cannot delete (has children) | `Status.CONFLICT` | `<ENTITY>_CHILDREN_EXIST` |
 | Cannot delete (referenced) | `Status.CONFLICT` | `<ENTITY>_REFERENCES_EXIST` |
 
@@ -91,10 +97,16 @@ description: "ERROR HANDLING ENFORCER — ensures ALL exceptions use LocalizedEx
 
 ### CHECK 3: Error Code Registration
 
+> Format choice (`<ENTITY>_<SCENARIO>` vs. `ERR_<MODULE>_<NNNN>`) is governed by
+> [`api-contract.md`](../../../context/api-contract.md) §3 — flag a module only if it mixes both
+> formats within its own `<Module>ErrorCodes`, not for using the registry form consistently
+> (e.g. `erp-org`'s existing `ERR_ORG_NNNN` codes are not a violation).
+
 ```
 [ ] Error codes defined in <Module>ErrorCodes.java as static final String constants
 [ ] NO inline error strings in service methods
-[ ] Each error code constant follows: <ENTITY>_<SCENARIO> pattern
+[ ] Each error code constant follows ONE format consistently: <ENTITY>_<SCENARIO> (default) or
+    ERR_<MODULE>_<NNNN> (registry form, only if the module already uses it) — not both
 [ ] Error codes class has private constructor (utility class)
 [ ] Error codes class throws UnsupportedOperationException in constructor
 ```
@@ -252,6 +264,10 @@ Fix: Replace with LocalizedException using domain error code.
 ---
 
 ## `erp-common-utils` ERROR HANDLING CLASSES
+
+> Canonical ownership of these classes' contract (envelope shape, Status→HTTP mapping) is defined
+> once in [`api-contract.md`](../../../context/api-contract.md) — the table below is only a
+> where-to-find-it index, not a second definition.
 
 All error handling MUST use classes from `erp-common-utils` — do NOT create per-module equivalents:
 

@@ -109,5 +109,6 @@ Skill files are at `.github/skills/<category>/<skill-name>/SKILL.md`.
 
 - Backend architecture overview: `.github/context/backend.md`
 - Domain Layer Guideline (Business Rule ownership): `.github/context/domain-layer.md`
+- API Contract Guideline (response envelope, exception→HTTP mapping, error-code format): `.github/context/api-contract.md`
 - Frontend architecture overview + navigation i18n keys: `.github/context/frontend.md`
 - All detailed rules live in `.github/skills/`

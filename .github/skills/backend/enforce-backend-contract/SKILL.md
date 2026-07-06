@@ -177,6 +177,9 @@ Run EVERY check. Mark ✅ PASS or ❌ VIOLATION.
 
 ### LAYER 6: Controller Contract Enforcement
 
+> Full contract definition (envelope shape, exception→HTTP mapping this layer checks against):
+> [`api-contract.md`](../../../context/api-contract.md).
+
 ```
 [ ] A.6.1  — @RestController @RequestMapping @RequiredArgsConstructor
 [ ] A.6.2  — @Tag with Arabic + English description
@@ -214,6 +217,9 @@ Fix: [Exact code correction]
 ---
 
 ## Automatic Rejection Triggers
+
+> The envelope/exception-mapping rows below check consumption of the contract canonically defined
+> in [`api-contract.md`](../../../context/api-contract.md) — that document owns the mapping itself.
 
 The following patterns trigger IMMEDIATE rejection — no exceptions:
 
@@ -269,6 +275,11 @@ The following patterns trigger IMMEDIATE rejection — no exceptions:
 ---
 
 ## `erp-common-utils` CONSUMPTION CHECKS
+
+> CU.3 and CU.6–CU.8 check consumption of the contract canonically defined in
+> [`api-contract.md`](../../../context/api-contract.md) — that document is the source of truth
+> for the envelope/mapping shape itself; this table only checks that a feature consumes it
+> correctly.
 
 When running this enforcement, also verify shared code from `erp-common-utils` is consumed:
 

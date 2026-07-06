@@ -31,19 +31,45 @@ def resolve_ref(schema: dict, components: dict) -> tuple[dict, Optional[str]]:
     return schema, None
 
 
-def schema_fields(schema: dict, components: dict) -> list[FieldSpec]:
-    """Field list for a resolved-or-ref'd object schema (not array/envelope aware)."""
-    resolved, _ = resolve_ref(schema, components)
+def schema_fields(schema: dict, components: dict, _visited: frozenset = frozenset()) -> list[FieldSpec]:
+    """Field list for a resolved-or-ref'd object schema (not array/envelope aware).
+
+    Also recursively expands any field whose own type (or array-item type) is
+    itself an object schema with properties -- e.g. a search request's
+    `filters: array<ContractFilter>` gets ContractFilter's own field, operator,
+    value fields attached to FieldSpec.nested, instead of staying an opaque
+    type name. `_visited` guards against self-referential schemas (e.g. a tree
+    node's own `children` field) by marking FieldSpec.recursive_ref instead of
+    expanding forever.
+    """
+    resolved, ref_name = resolve_ref(schema, components)
+    if ref_name:
+        _visited = _visited | {ref_name}
     props = resolved.get("properties", {})
     required_names = set(resolved.get("required", []))
 
     def _resolve(s: dict) -> tuple[dict, Optional[str]]:
         return resolve_ref(s, components)
 
-    return [
+    fields = [
         validation_extractor.build_field_spec(name, prop, name in required_names, _resolve)
         for name, prop in props.items()
     ]
+    for f in fields:
+        _expand_nested(f, components, _visited)
+    return fields
+
+
+def _expand_nested(f: FieldSpec, components: dict, visited: frozenset) -> None:
+    schemas = components.get("schemas", {})
+    ref_name = f.item_type if f.is_array else f.type
+    ref_schema = schemas.get(ref_name) if ref_name else None
+    if not ref_schema or not ref_schema.get("properties"):
+        return
+    if ref_name in visited:
+        f.recursive_ref = ref_name
+        return
+    f.nested = schema_fields(ref_schema, components, visited | {ref_name})
 
 
 def is_envelope_shape(resolved: dict) -> bool:

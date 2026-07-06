@@ -13,8 +13,8 @@ fixed name.
 
 from typing import Optional
 
-from extractors import dto_extractor, validation_extractor
-from models.api_doc_model import FieldSpec, ResponseEnvelope
+from extractors import dto_extractor
+from models.api_doc_model import ResponseEnvelope
 
 
 def find_envelope(openapi: dict) -> Optional[ResponseEnvelope]:
@@ -31,30 +31,20 @@ def find_envelope(openapi: dict) -> Optional[ResponseEnvelope]:
     if not envelope_schema:
         return None
 
-    def _resolve(s: dict):
-        return dto_extractor.resolve_ref(s, components)
-
-    props = envelope_schema.get("properties", {})
-    fields: list[FieldSpec] = []
-    for key in ("success", "message", "data", "error", "timestamp"):
-        prop = props.get(key)
-        if prop is None:
-            continue
-        if key == "data":
-            fields.append(FieldSpec(name="data", type="object", description="Endpoint-specific payload — see each endpoint's Response section"))
-            continue
-        if key == "error":
-            resolved, ref_name = _resolve(prop)
-            if ref_name:
-                fields.append(FieldSpec(name="error", type=ref_name, description="Present only when success=false"))
-                error_props = resolved.get("properties", {})
-                required = set(resolved.get("required", []))
-                for err_key, err_prop in error_props.items():
-                    spec = validation_extractor.build_field_spec(f"error.{err_key}", err_prop, err_key in required, _resolve)
-                    fields.append(spec)
-            else:
-                fields.append(FieldSpec(name="error", type="object", description="Present only when success=false"))
-            continue
-        fields.append(validation_extractor.build_field_spec(key, prop, False, _resolve))
+    # Walk every declared property generically (not a fixed key subset) so any
+    # envelope field beyond the five originally assumed here -- e.g.
+    # correlationId -- is still documented instead of silently dropped.
+    # dto_extractor.schema_fields already expands nested object fields (e.g.
+    # error.fieldErrors -> FieldErrorItem's own fields) via the same recursive
+    # mechanism used for request/response DTOs, so "error" needs no special
+    # hand-rolled expansion here anymore.
+    fields = dto_extractor.schema_fields(envelope_schema, components)
+    for f in fields:
+        if f.name == "data":
+            f.type = "object"
+            f.description = "Endpoint-specific payload — see each endpoint's Response section"
+            f.nested = []
+        elif f.name == "error":
+            f.description = f.description or "Present only when success=false"
 
     return ResponseEnvelope(schema_name=envelope_name, fields=fields)

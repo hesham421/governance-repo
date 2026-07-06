@@ -251,6 +251,11 @@ in a package whose name contradicts what one of them actually is.
 
 ### Example
 
+> Status choice for guard methods below follows [`api-contract.md`](../../../context/api-contract.md)
+> §2: "cannot deactivate/delete because active/child records exist" is `Status.CONFLICT` (409) —
+> `Status.BUSINESS_RULE_VIOLATION` (422) is reserved for invariant violations that are not "a
+> specific referencing record exists" (invalid state transitions, cycle detection).
+
 ```java
 public final class OrgLegalEntityDomain {
 
@@ -276,10 +281,10 @@ public final class OrgLegalEntityDomain {
     // RULE-ORG-001 / RULE-ORG-002 — decision only, Service performs entity.deactivate() after this returns
     public void assertCanDeactivate(long activeBranchCount, long activeProfitCenterCount) {
         if (activeBranchCount > 0) {
-            throw new LocalizedException(Status.BUSINESS_RULE_VIOLATION, OrgErrorCodes.LE_HAS_ACTIVE_BRANCHES);
+            throw new LocalizedException(Status.CONFLICT, OrgErrorCodes.LE_HAS_ACTIVE_BRANCHES);
         }
         if (activeProfitCenterCount > 0) {
-            throw new LocalizedException(Status.BUSINESS_RULE_VIOLATION, OrgErrorCodes.LE_HAS_ACTIVE_PROFIT_CENTERS);
+            throw new LocalizedException(Status.CONFLICT, OrgErrorCodes.LE_HAS_ACTIVE_PROFIT_CENTERS);
         }
     }
 }

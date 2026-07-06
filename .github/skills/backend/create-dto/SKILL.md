@@ -222,6 +222,9 @@ public class <Entity>OptionResponse {
 
 ## SHARED LAYER MANDATE (`erp-common-utils`)
 
+> Full contract definition (response envelope, error shape): [`api-contract.md`](../../../context/api-contract.md).
+> The table below is this skill's consumption checklist, not a second copy of the contract.
+
 Before creating DTOs, verify the following shared resources from `erp-common-utils` are consumed — do NOT reinvent:
 
 | # | Requirement | Shared Class | Package |
