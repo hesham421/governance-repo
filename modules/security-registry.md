@@ -1,9 +1,9 @@
 # registry-security.md
 ════════════════════════════════════════
 Module       : SECURITY
-Version      : 2.2.0
-Last Updated : 2026-06-28
-Updated By   : Agent (PG Migration)
+Version      : 2.3.0
+Last Updated : 2026-07-07
+Updated By   : Agent (Gap Closure — items 1, 4, 7)
 Status       : Complete
 ════════════════════════════════════════
 
@@ -243,6 +243,7 @@ Table exists in DB schema (`V0__full_schema_create.sql`) but is **NOT actively u
 | POST   | `/api/roles/{roleId}/pages`        | `PERM_ROLE_UPDATE`    |
 | PUT    | `/api/roles/{roleId}/pages`        | `PERM_ROLE_UPDATE`    |
 | DELETE | `/api/roles/{roleId}/pages/{pageCode}` | `PERM_ROLE_UPDATE` |
+| POST   | `/api/roles/{roleId}/copy-from/{sourceRoleId}` | `PERM_ROLE_UPDATE` |
 
 **POST `/api/roles`** → Create Role
 - Request: `CreateRoleRequest { roleCode (uppercase pattern ^[A-Z][A-Z0-9_]*$), roleName, description, active }`
@@ -268,6 +269,14 @@ Table exists in DB schema (`V0__full_schema_create.sql`) but is **NOT actively u
 
 **DELETE `/api/roles/{roleId}/pages/{pageCode}`** → Remove Page from Role
 - Removes VIEW + all CRUD permissions for that page from the role
+
+**POST `/api/roles/{roleId}/copy-from/{sourceRoleId}`** → Copy Permissions From Role
+- `roleId` = target role, `sourceRoleId` = source role
+- **Scope (page-scoped only, not full-role copy)**: reads source role's `ROLE_PERMISSIONS` filtered to `Permission.isPagePermission()` (i.e. joined `PERMISSIONS.PAGE_ID_FK IS NOT NULL`); Full-Replaces the target's page-scoped `ROLE_PERMISSIONS` rows with that set. The target's system-level permissions (`PAGE_ID_FK IS NULL`, e.g. `PERM_SYSTEM_ADMIN`) are left untouched — this is a deliberate privilege-escalation guard (Rule 25), not an oversight: a naive full-row copy would let an admin silently hand the target role any system-level permission the source happened to hold.
+- `targetRoleId == sourceRoleId` → `400 Bad Request` (`INVALID_OPERATION`)
+- Source has zero page-scoped permissions → `409 Conflict` (`NO_PERMISSIONS_TO_COPY`) — Rule 24
+- Response: `CopyPermissionsResponse { roleId, roleName, copiedFrom { roleId, roleName }, assignments[] }`
+- Service: `RoleAccessService.copyPermissionsFromRole()`
 
 ---
 
@@ -375,6 +384,14 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 
 23. **The system MUST validate sort field whitelists** — `PageableValidator.validateSortFields()` to prevent injection via sort params.
 
+24. **The system MUST reject Copy Permissions if the source role has zero page-scoped permissions** — `RoleAccessService.copyPermissionsFromRole()` → `NO_PERMISSIONS_TO_COPY` (Status `CONFLICT` → HTTP 409, same pattern as `ROLE_IN_USE`).
+
+25. **The system MUST only copy page-scoped permissions (`PAGE_ID_FK IS NOT NULL`) in Copy Permissions, never system-level permissions** — `Permission.isPagePermission()` filters both the source read and the target's existing-row deletion; the target's pre-existing system-level permissions are preserved. Privilege-escalation guard — added 2026-07-07 gap closure (previously the endpoint copied ALL `ROLE_PERMISSIONS` rows unfiltered, a real privilege-escalation defect; see §9 v2.3.0).
+
+26. **The system MUST purge expired refresh tokens periodically** — `RefreshTokenCleanupJob` (`@Scheduled`, cron `erp.security.token-cleanup.cron`, default daily 03:00) calls `RefreshTokenRepository.deleteByExpiresAtBefore(now())`.
+
+27. **The system MUST purge revoked refresh tokens older than a configured retention window** — same `RefreshTokenCleanupJob` run, `RefreshTokenRepository.deleteByRevokedTrueAndCreatedAtBefore(cutoff)`, cutoff = now − `erp.security.token-cleanup.revoked-retention-days` (default 30). `REFRESH_TOKENS` has no separate "revoked at" timestamp, so `CREATED_AT` is used as the age reference — a revoked token is retained at most `retention-days` from when it was originally issued, not from when it was revoked.
+
 ---
 
 ## 4. LOOKUP & REFERENCE USAGE
@@ -463,6 +480,22 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 - Credentials: `true`
 - Allowed origins: configurable via `erp.security.cors.allowed-origins`
 
+### 5.6 Cache Configuration (as of 2026-07-07 — see §9 v2.3.0)
+
+- `@EnableCaching` is active in both `RedisCacheConfig.java` and `ErpMainApplication.java` (see §7.4 — there are two independent `@SpringBootApplication` entry points, and caching was enabled in both).
+- **Currently zero active `@Cacheable` methods in the module.** `UserService.getUserRoleNames()`'s `@Cacheable("userRoleNames")` was deliberately removed (not left disabled) — it cached USERS-derived authorization data, which this module's policy forbids caching regardless of TTL (freshness/security decision). `PermissionService`'s `@CacheEvict`s on `permissionByName`/`permissionsList` remain — they are eviction-only with no populate-side `@Cacheable`, i.e. currently inert no-ops, same as `UserService`'s `users`/`userRoles` evictions.
+- `spring.cache.cache-names` in `application.properties` no longer lists `userRoleNames` (removed alongside the annotation).
+- ⚠️ **`application-prod.properties` sets `spring.cache.type=simple`**, overriding the base `application.properties`'s `spring.cache.type=redis`. Since no `@Cacheable` is currently active, this has no live effect today, but if a populate-side cache is added later without checking this, the prod profile will silently use in-memory `ConcurrentMapCacheManager` (no TTL, unbounded, per-instance) instead of Redis. *(TD-SEC-001 — flag before relying on caching in prod.)*
+- ⚠️ `ErpMainApplication`'s `@SpringBootApplication(excludeName = {"org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration", ...})` appears to target a stale pre-Boot-4 FQCN — verified live (booted against local Redis+Postgres) that a `RedisConnectionFactory` bean is still created and `RedisCacheConfig.cacheManager()` resolves fine, so the exclude is currently a no-op. *(TD-SEC-002 — low-priority cleanup, not blocking.)*
+
+### 5.7 Scheduled Jobs
+
+- **`RefreshTokenCleanupJob`** (`com.example.security.scheduler`) — single `@Scheduled` job covering both Rule 26 (expired) and Rule 27 (revoked) token purges in one run.
+  - `erp.security.token-cleanup.cron` — cron expression, default `0 0 3 * * *` (daily 03:00)
+  - `erp.security.token-cleanup.revoked-retention-days` — retention window in days, default `30`
+  - Both bound via `RefreshTokenCleanupProperties` (`@ConfigurationProperties(prefix = "erp.security.token-cleanup")`, registered in `SecurityPropertiesConfig`)
+  - Requires `@EnableScheduling` — present on both `ErpMainApplication` and `SecurityOracleJwtApplication` (§7.4)
+
 ---
 
 ## 6. APPROVAL WORKFLOW
@@ -495,23 +528,36 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 
 - Other modules (GL, Finance, etc.) seed their pages into `SEC_PAGES` as well — the Security module owns the `SEC_PAGES` table structure
 
+### 7.4 Deployment Entry Points (discovered 2026-07-07, see §9 v2.3.0)
+
+There are **two** independent `@SpringBootApplication` classes that can boot the security module — this matters for any config decision that lives on the application class (`@EnableCaching`, `@EnableScheduling`, component scan, autoconfig excludes, etc.):
+
+- **`com.erp.main.ErpMainApplication`** (`erp-main` module) — the **real production entry point**. Aggregates security + masterdata + finance-gl + org into one context, all APIs on port 7272. `backend/CLAUDE.md` confirms this is what actually ships.
+- **`com.example.security.SecurityOracleJwtApplication`** (`erp-security` module) — a standalone/dev bootstrap for running the security module in isolation (also port 7272 standalone per its own Javadoc). Not used in the assembled production deployment; `erp-security` is packaged as a plain `jar`, not run directly.
+
+Any `@Enable*` annotation, exclude, or app-level config added for this module must be applied to **`ErpMainApplication`** to take effect in production. `SecurityOracleJwtApplication` should be kept consistent for standalone-mode parity, but is not a substitute.
+
 ---
 
 ## 8. WHAT IS MISSING OR INCOMPLETE
 
-1. **⚠️ Redis caching is DISABLED** — `@EnableCaching` is commented out in `RedisCacheConfig`. All `@Cacheable`, `@CachePut`, `@CacheEvict` annotations in services are also commented out. Cache infrastructure is configured but not active. *(DEFERRED — infrastructure decision)*
+1. **✅ RESOLVED 2026-07-07** — ~~Redis caching is DISABLED~~. `@EnableCaching` is now active (`RedisCacheConfig.java` AND `ErpMainApplication.java` — the actual production entry point; this item's original text only knew about `RedisCacheConfig`). One pre-existing populate-side `@Cacheable` (`UserService.getUserRoleNames`, USERS-backed) was found and **removed** rather than activated — activating it would have violated the module's own "never cache USERS data" policy the moment caching infra went live. Net effect: caching infrastructure is on, but zero `@Cacheable` methods are currently active in the module. Details: §5.6.
 
-2. **⚠️ `roleCode` and `description` are `@Transient`** in `Role.java` — They appear in `CreateRoleRequest` and `RoleDto` but are not persisted to DB. Only `roleName` is stored. This creates an API contract vs. DB mismatch. *(PERMANENT EXCEPTION — AS-IS)*
+2. **⚠️ `roleCode` and `description` are `@Transient`** in `Role.java` — They appear in `CreateRoleRequest` and `RoleDto` but are not persisted to DB. Only `roleName` is stored. This creates an API contract vs. DB mismatch. *(PERMANENT EXCEPTION — AS-IS. Reviewed again 2026-07-07 during gap closure; architect explicitly chose to leave locked rather than open a master-registry Conflict. No code changed.)*
 
 3. **⚠️ `SEC_MENU_ITEM` table** exists in DB schema but is never used by `MenuService`. It is a legacy artifact. The menu is now built from `SEC_PAGES`. *(DEFERRED)*
 
-4. **⚠️ `RoleController` copy-permissions endpoint** referenced by `CopyPermissionsResponse` DTO and `NO_PERMISSIONS_TO_COPY` error code — no controller method implementing this feature was found. *(DEFERRED)*
+4. **✅ RESOLVED 2026-07-07** — ~~`RoleController` copy-permissions endpoint ... no controller method implementing this feature was found~~. Correction: the endpoint already existed (`POST /api/roles/{roleId}/copy-from/{sourceRoleId}`, `RoleAccessService.copyPermissionsFromRole()`) with full backend + frontend wiring — this item's original text was wrong, not just stale. However its actual behavior was a raw full-copy of ALL `ROLE_PERMISSIONS` rows (including system-level permissions), a genuine privilege-escalation defect, and `NO_PERMISSIONS_TO_COPY` was never thrown despite the error code existing. Fixed to page-scoped-only copy (architect-confirmed scope decision) with proper empty-source validation. Details: §2.3, Rules 24–25.
 
-5. **⚠️ PK naming convention deviation** — `USERS.ID`, `ROLES.ID`, `PERMISSIONS.ID`, `REFRESH_TOKENS.ID` use `ID` instead of the project convention `ID_PK`. Only `SEC_PAGES` follows the `ID_PK` convention. *(PERMANENT EXCEPTION — AS-IS)*
+5. **⚠️ PK naming convention deviation** — `USERS.ID`, `ROLES.ID`, `PERMISSIONS.ID`, `REFRESH_TOKENS.ID` use `ID` instead of the project convention `ID_PK`. Only `SEC_PAGES` follows the `ID_PK` convention. *(PERMANENT EXCEPTION — AS-IS. Reviewed again 2026-07-07; architect explicitly declined the rename given the live-PK/FK-cascade migration risk versus a pure naming-consistency benefit. No code changed.)*
 
 6. **⚠️ No rate limiting** on `/api/auth/login` — no protection against brute-force attacks. *(DEFERRED — infrastructure concern)*
 
-7. **⚠️ No cleanup job** for expired `REFRESH_TOKENS` rows — `RefreshTokenRepository.deleteByExpiresAtBefore()` exists but no `@Scheduled` task using it was found. *(DEFERRED — operational concern)*
+7. **✅ RESOLVED 2026-07-07** — ~~No cleanup job for expired REFRESH_TOKENS rows~~. `RefreshTokenCleanupJob` now purges both expired tokens (existing `deleteByExpiresAtBefore()`) and revoked tokens past a retention window (new `deleteByRevokedTrueAndCreatedAtBefore()`). Details: §5.7, Rules 26–27.
+
+8. **⚠️ NEW — `spring.cache.type` profile mismatch** — `application-prod.properties` overrides to `simple`, base `application.properties` sets `redis`. No live effect today since no `@Cacheable` is active (item 1), but will silently produce in-memory (not Redis) caching in prod if a populate-side cache is added later without checking this. *(DEFERRED — flag before relying on caching in prod. Details: §5.6, TD-SEC-001.)*
+
+9. **⚠️ NEW — stale `RedisAutoConfiguration` exclude** — `ErpMainApplication`'s `excludeName` list appears to reference a pre-Boot-4 FQCN and is a verified no-op (booted locally with `@EnableCaching` on and Redis reachable — connection factory still resolved fine). Low-priority cleanup. *(DEFERRED. Details: §5.6, TD-SEC-002.)*
 
 ---
 
@@ -523,6 +569,11 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 | 2.0.0   | 2026-06-21 | Multi-tenancy removal — TENANT_ID eliminated system-wide    | Claude Code    |
 | 2.1.0   | 2026-06-26 | GAP-SEC-01/02/03 closed: @PreAuthorize added to PageController (5 endpoints) and PermissionController (2 endpoints). PERMISSION_UPDATE constant confirmed present. Tests added for 401/403/200 scenarios on all affected endpoints. | Agent (Gap Closure) |
 | 2.2.0   | 2026-06-28 | Oracle → PostgreSQL migration: column types updated in registry (NUMBER→BIGINT, NUMBER(IDENTITY)→BIGINT GENERATED ALWAYS AS IDENTITY, VARCHAR2→VARCHAR, NUMBER(1)→SMALLINT). No Java entity changes were required — all types were already PostgreSQL-compatible. | Agent (PG Migration) |
+| 2.3.0   | 2026-07-07 | Gap closure — items 1, 4, 7 resolved (see §8): (1) `@EnableCaching` activated in `RedisCacheConfig` + `ErpMainApplication`; policy-violating `userRoleNames` USERS-cache found and removed rather than activated. (4) Copy Permissions endpoint corrected from unfiltered full-copy (privilege-escalation defect) to page-scoped-only copy with `NO_PERMISSIONS_TO_COPY` validation (architect-confirmed scope). (7) `RefreshTokenCleanupJob` added for expired + revoked token purging (new repository method `deleteByRevokedTrueAndCreatedAtBefore`). Items 2 and 5 reviewed and explicitly kept as PERMANENT EXCEPTION (architect decision, no code change). New facts documented: two independent deployment entry points (§7.4), cache/scheduler config (§5.6–5.7), two new tech-debt items 8–9. All changes verified via live boot (Postgres+Redis) + full test suite (20 tests, `erp-security`). | Agent (Gap Closure) |
+
+### ⚠️ GAP-SEC ID namespace note (flagged 2026-07-07)
+
+The v2.1.0 entry below reused the labels "GAP-SEC-01/02/03" for a **different** set of items (`@PreAuthorize` additions to `PageController`/`PermissionController`) than the "GAP-SEC-01/02/.../07" numbering used by this session's source documents (`gap-closure-register-SEC.md`), which maps 1:1 to this section's numbered items 1–7 above (GAP-SEC-01 = item 1, GAP-SEC-04 = item 4, GAP-SEC-07 = item 7, etc.). These are two unrelated numbering sequences that happen to collide on the same IDs. Anyone cross-referencing this change log against a `GAP-SEC-0N` reference from a different document should confirm which sequence is meant. Recommend renaming the historical v2.1.0 sequence (e.g. to `GAP-SEC-LEGACY-01/02/03`) the next time this file is touched by whoever owns the gap register — not done unilaterally here since it would mean editing a past change-log entry's meaning.
 
 ### v2.0.0 — Multi-Tenancy Removal Detail
 
