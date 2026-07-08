@@ -1,37 +1,34 @@
 # registry-security.md
 ════════════════════════════════════════
 Module       : SECURITY
-Version      : 2.3.0
-Last Updated : 2026-07-07
-Updated By   : Agent (Gap Closure — items 1, 4, 7)
-Status       : Complete
+Version      : 2.4.0
+Last Updated : 2026-07-08
 ════════════════════════════════════════
 
 ---
 
-## 1. ENTITIES & DB STRUCTURE
+## 1. ENTITIES & DB ST> **Naming-convention note**: PK column names (`USERS_PK`, `ROLES_PK`, `PERMISSIONS_PK`, `REFRESH_TOKENS_PK`, `SEC_PAGES_PK`) and FK constraint names (`FK_*`) are both real and grep-able in `erp-security/src/main/java` (`@Column(name = ...)` and `@JoinColumn(foreignKey = @ForeignKey(name = ...))` respectively) — matching how `erp-org`/`erp-masterdata` already name things, and this project's own `create-entity` skill (rules A.1.2, A.1.15). **PK constraint names**, however, cannot be set via any JPA/Hibernate annotation (verified by decompiling `hibernate-core-7.2.0.Final.jar`: neither `PhysicalNamingStrategy` nor `ImplicitNamingStrategy` has a PK-constraint hook) — those are enforced only by the `pg_constraint`-driven block in `001_security_schema_migration_and_seed.sql`, and only take effect once a DBA runs it (`ddl-auto=none`, no Flyway wired up for `erp-security`). `CK_*` (check constraint) names are not asserted anywhere in this document — no `@Check` usage exists in this project; get real CHECK definitions from the DBA/live schema.
 
 ### 1.1 `USERS` → `UserAccount.java`
 
 | Column      | Type                            | Nullable | Default | Constraints                    |
 |-------------|---------------------------------|----------|---------|--------------------------------|
-| ID          | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | PK → `USERS_PK`          |
+| USERS_PK    | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | Primary Key             |
 | USERNAME    | VARCHAR(80)                     | NOT NULL | —       | UK: `UK_USERS_USERNAME`        |
 | PASSWORD    | VARCHAR(200)                    | NOT NULL | —       | BCrypt hash                    |
-| ENABLED     | SMALLINT                        | NOT NULL | 1       | CK: `CK_USERS_ENABLED` IN (0,1)|
+| ENABLED     | SMALLINT                        | NOT NULL | 1       | Boolean flag (0/1)             |
 | CREATED_AT  | TIMESTAMP                       | NOT NULL | —       | Audit                          |
 | CREATED_BY  | VARCHAR(100)                    | NOT NULL | —       | Audit                          |
 | UPDATED_AT  | TIMESTAMP                       | NULL     | —       | Audit                          |
 | UPDATED_BY  | VARCHAR(100)                    | NULL     | —       | Audit                          |
 
-- **Primary Key**: `ID` (`USERS_PK`)
+- **Primary Key**: `USERS_PK` (column and constraint both use this name; renamed from `ID`, see §9) — column rename applied via `001_security_schema_migration_and_seed.sql`, pending DBA execution
 - **Indexes**: `IDX_USERS_ENABLED`, `IDX_USERS_USERNAME`
 - **FK Fields**: none (join table `USER_ROLES` links to `ROLES`)
 - **Flag Fields**: `ENABLED` (SMALLINT → converted to Boolean via `BooleanNumberConverter`)
 - **System Fields**: `CREATED_AT`, `CREATED_BY`, `UPDATED_AT`, `UPDATED_BY`
 - **Java Entity**: `UserAccount extends AuditableEntity`
-- **Relationships**: `@ManyToMany` → `ROLES` via join table `USER_ROLES`
-- **⚠️ NAMING NOTE**: PK column is `ID` (not `ID_PK` per convention).
+- **Relationships**: `@ManyToMany` → `ROLES` via join table `USER_ROLES` (`USER_ROLES.USER_ID_FK` → `USERS.USERS_PK`, `USER_ROLES.ROLE_ID_FK` → `ROLES.ROLES_PK`)
 
 ---
 
@@ -39,25 +36,26 @@ Status       : Complete
 
 | Column      | Type                            | Nullable | Default | Constraints                   |
 |-------------|---------------------------------|----------|---------|-------------------------------|
-| ID          | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | PK → `ROLES_PK`          |
+| ROLES_PK    | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | Primary Key             |
 | NAME        | VARCHAR(60)                     | NOT NULL | —       | UK: `UK_ROLES_NAME`           |
-| IS_ACTIVE   | SMALLINT                        | NOT NULL | 1       | CK: `CK_ROLES_ACTIVE` IN (0,1)|
+| ROLE_CODE   | VARCHAR(60)                     | NOT NULL | —       | UK: `UK_ROLES_ROLE_CODE`      |
+| DESCRIPTION | VARCHAR(500)                    | NULL     | —       | —                             |
+| IS_ACTIVE   | SMALLINT                        | NOT NULL | 1       | Boolean flag (0/1)            |
 | CREATED_AT  | TIMESTAMP                       | NOT NULL | —       | Audit                         |
 | CREATED_BY  | VARCHAR(100)                    | NOT NULL | —       | Audit                         |
 | UPDATED_AT  | TIMESTAMP                       | NULL     | —       | Audit                         |
 | UPDATED_BY  | VARCHAR(100)                    | NULL     | —       | Audit                         |
 
-- **Primary Key**: `ID` (`ROLES_PK`)
+- **Primary Key**: `ROLES_PK` (column and constraint both use this name; renamed from `ID`, see §9) — column rename applied via `001_security_schema_migration_and_seed.sql`, pending DBA execution
 - **Indexes**: `IDX_ROLES_IS_ACTIVE`
 - **Flag Fields**: `IS_ACTIVE` (SMALLINT → Boolean via `BooleanNumberConverter`)
 - **System Fields**: `CREATED_AT`, `CREATED_BY`, `UPDATED_AT`, `UPDATED_BY`
 - **Java Entity**: `Role extends AuditableEntity`
 - **Java Field Mapping**:
   - `NAME` DB column → Java `roleName` field (legacy `getName()` deprecated alias)
-  - `roleCode`, `description` are `@Transient` (not persisted)
-- **Relationships**: `@ManyToMany` → `PERMISSIONS` via `ROLE_PERMISSIONS`
-- **⚠️ NAMING NOTE**: PK column is `ID` (not `ID_PK` per convention). DB column is `NAME` while Java field is `roleName`.
-- **⚠️ TRANSIENT CONFLICT**: `roleCode` and `description` exist in DTOs but are `@Transient` in entity — NOT stored in DB.
+  - `ROLE_CODE` DB column → Java `roleCode` field — now persisted (previously `@Transient`); backfilled from `NAME`, which historically held the uppercased code (see §9)
+  - `DESCRIPTION` DB column → Java `description` field — now persisted (previously `@Transient`)
+- **Relationships**: `@ManyToMany` → `PERMISSIONS` via `ROLE_PERMISSIONS` (`ROLE_PERMISSIONS.ROLE_ID_FK` → `ROLES.ROLES_PK`, `ROLE_PERMISSIONS.PERM_ID_FK` → `PERMISSIONS.PERMISSIONS_PK`)
 
 ---
 
@@ -65,24 +63,24 @@ Status       : Complete
 
 | Column        | Type           | Nullable | Default | Constraints                       |
 |---------------|----------------|----------|---------|-----------------------------------|
-| ID_PK         | BIGINT         | NOT NULL | SEQ     | PK → `SEC_PAGES_PK` (uses `SEC_PAGES_SEQ`) |
+| SEC_PAGES_PK  | BIGINT         | NOT NULL | SEQ     | Primary Key, uses sequence `SEC_PAGES_SEQ` (sequence name real: `@SequenceGenerator(sequenceName = "SEC_PAGES_SEQ")`) |
 | PAGE_CODE     | VARCHAR(50)    | NOT NULL | —       | UK: `UK_PAGES_CODE`               |
 | NAME_AR       | VARCHAR(100)   | NOT NULL | —       | Arabic name                       |
 | NAME_EN       | VARCHAR(100)   | NOT NULL | —       | English name                      |
 | ROUTE         | VARCHAR(200)   | NOT NULL | —       | UK: `UK_PAGES_ROUTE`              |
 | ICON          | VARCHAR(50)    | NULL     | —       | —                                 |
 | MODULE        | VARCHAR(50)    | NULL     | —       | e.g., SECURITY, FINANCE, GL       |
-| PARENT_ID_FK  | BIGINT         | NULL     | —       | Self-reference FK (hierarchy)     |
+| PARENT_ID_FK  | BIGINT         | NULL     | —       | Self-reference (hierarchy) — plain `@Column`, not a JPA relationship, so no `@ForeignKey` name applies (see note below) |
 | DISPLAY_ORDER | BIGINT         | NULL     | —       | Sort order                        |
-| IS_ACTIVE     | SMALLINT       | NULL     | 1       | CK: `CK_PAGES_ACTIVE` IN (0,1)   |
+| IS_ACTIVE     | SMALLINT       | NULL     | 1       | Boolean flag (0/1)                |
 | DESCRIPTION   | VARCHAR(500)   | NULL     | —       | —                                 |
 | CREATED_AT    | TIMESTAMP      | NOT NULL | —       | Audit                             |
 | CREATED_BY    | VARCHAR(100)   | NOT NULL | —       | Audit                             |
 | UPDATED_AT    | TIMESTAMP      | NULL     | —       | Audit                             |
 | UPDATED_BY    | VARCHAR(100)   | NULL     | —       | Audit                             |
 
-- **Primary Key**: `ID_PK` (`SEC_PAGES_PK`) — uses sequence `SEC_PAGES_SEQ`
-- **FK Fields**: `PARENT_ID_FK` (self-reference to `SEC_PAGES.ID_PK`)
+- **Primary Key**: `SEC_PAGES_PK` (column and constraint both use this name; renamed from the generic `ID_PK`, see §9) — uses sequence `SEC_PAGES_SEQ`; column rename applied via `001_security_schema_migration_and_seed.sql`, pending DBA execution
+- **FK Fields**: `PARENT_ID_FK` (self-reference to `SEC_PAGES.SEC_PAGES_PK`) — stored as a raw `Long` via `@Column`, not a `@ManyToOne`/`@JoinColumn` relationship, so there's no site to attach an `@ForeignKey` name to
 - **Flag Fields**: `IS_ACTIVE` (NUMBER(1) → Boolean)
 - **Indexes**: `IDX_PAGES_MODULE`, `IDX_PAGES_ACTIVE`, `IDX_PAGES_PARENT`
 - **Java Entity**: `Page extends AuditableEntity`
@@ -96,17 +94,17 @@ Status       : Complete
 
 | Column          | Type                            | Nullable | Default | Constraints                    |
 |-----------------|---------------------------------|----------|---------|--------------------------------|
-| ID              | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | PK → `PERMISSIONS_PK`    |
+| PERMISSIONS_PK  | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | Primary Key              |
 | NAME            | VARCHAR(150)                    | NOT NULL | —       | UK: `UK_PERMS_NAME`            |
-| PAGE_ID_FK      | BIGINT                          | NULL     | —       | FK → `SEC_PAGES.ID_PK` (`FK_PERMS_PAGE`) |
+| PAGE_ID_FK      | BIGINT                          | NULL     | —       | FK → `SEC_PAGES.SEC_PAGES_PK` (`FK_PERMS_PAGE`) |
 | PERMISSION_TYPE | VARCHAR(20)                     | NULL     | —       | Enum: VIEW, CREATE, UPDATE, DELETE |
 | CREATED_AT      | TIMESTAMP                       | NOT NULL | —       | Audit                          |
 | CREATED_BY      | VARCHAR(100)                    | NOT NULL | —       | Audit                          |
 | UPDATED_AT      | TIMESTAMP                       | NULL     | —       | Audit                          |
 | UPDATED_BY      | VARCHAR(100)                    | NULL     | —       | Audit                          |
 
-- **Primary Key**: `ID` (`PERMISSIONS_PK`)
-- **FK Fields**: `PAGE_ID_FK` → `SEC_PAGES(ID_PK)` (nullable for system permissions)
+- **Primary Key**: `PERMISSIONS_PK` (column and constraint both use this name; renamed from `ID`, see §9) — column rename applied via `001_security_schema_migration_and_seed.sql`, pending DBA execution
+- **FK Fields**: `PAGE_ID_FK` → `SEC_PAGES(SEC_PAGES_PK)` (nullable for system permissions), named `FK_PERMS_PAGE` via `@JoinColumn(foreignKey = @ForeignKey(name = ...))`
 - **Indexes**: `IDX_PERMS_NAME`, `IDX_PERMS_PAGE_FK`, `IDX_PERMS_TYPE`
 - **Naming Pattern**: `PERM_<PAGE_CODE>_<TYPE>` (e.g., `PERM_USER_VIEW`, `PERM_ROLE_CREATE`)
 - **Java Entity**: `Permission extends AuditableEntity`
@@ -116,17 +114,17 @@ Status       : Complete
 
 ### 1.5 `REFRESH_TOKENS` → `RefreshToken.java`
 
-| Column     | Type                            | Nullable | Default | Constraints                          |
-|------------|---------------------------------|----------|---------|--------------------------------------|
-| ID         | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | PK → `REFRESH_TOKENS_PK`        |
-| JTI        | VARCHAR(64)                     | NOT NULL | —       | UK: `UK_REFRESH_TOKENS_JTI`         |
-| USER_ID    | BIGINT                          | NOT NULL | —       | FK → `USERS.ID` (`FK_RT_USER`)      |
-| CREATED_AT | TIMESTAMP                       | NOT NULL | —       | Auto via `@CreationTimestamp`        |
-| EXPIRES_AT | TIMESTAMP                       | NOT NULL | —       | Expiry timestamp                     |
-| REVOKED    | SMALLINT                        | NOT NULL | 0       | CK: `CK_RT_REVOKED` IN (0,1)        |
+| Column            | Type                            | Nullable | Default | Constraints                          |
+|-------------------|---------------------------------|----------|---------|--------------------------------------|
+| REFRESH_TOKENS_PK | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | Primary Key                     |
+| JTI               | VARCHAR(64)                     | NOT NULL | —       | UK: `UK_REFRESH_TOKENS_JTI`         |
+| USER_ID_FK        | BIGINT                          | NOT NULL | —       | FK → `USERS.USERS_PK` (`FK_RT_USER`)|
+| CREATED_AT        | TIMESTAMP                       | NOT NULL | —       | Auto via `@CreationTimestamp`        |
+| EXPIRES_AT        | TIMESTAMP                       | NOT NULL | —       | Expiry timestamp                     |
+| REVOKED           | SMALLINT                        | NOT NULL | 0       | Boolean flag (0/1)                   |
 
-- **Primary Key**: `ID` (`REFRESH_TOKENS_PK`)
-- **FK Fields**: `USER_ID` → `USERS(ID)`
+- **Primary Key**: `REFRESH_TOKENS_PK` (column and constraint both use this name; renamed from `ID`, see §9) — column rename applied via `001_security_schema_migration_and_seed.sql`, pending DBA execution
+- **FK Fields**: `USER_ID_FK` → `USERS(USERS_PK)`, named `FK_RT_USER` via `@JoinColumn(foreignKey = @ForeignKey(name = ...))` (column renamed from `USER_ID`)
 - **Flag Fields**: `REVOKED` (SMALLINT → Boolean)
 - **JTI**: UUID used as refresh token identifier (stored in cookie)
 
@@ -135,26 +133,21 @@ Status       : Complete
 ### 1.6 Join Tables
 
 #### `USER_ROLES`
-| Column  | Type   | Constraints                                  |
-|---------|--------|----------------------------------------------|
-| USER_ID | BIGINT | FK → `USERS(ID)` (`FK_UR_USER`) + PK        |
-| ROLE_ID | BIGINT | FK → `ROLES(ID)` (`FK_UR_ROLE`) + PK        |
+| Column     | Type   | Constraints                                  |
+|------------|--------|----------------------------------------------|
+| USER_ID_FK | BIGINT | FK → `USERS(USERS_PK)` (`FK_UR_USER`) + PK  |
+| ROLE_ID_FK | BIGINT | FK → `ROLES(ROLES_PK)` (`FK_UR_ROLE`) + PK  |
 
-PK: `USER_ROLES_PK (USER_ID, ROLE_ID)`
+PK: `USER_ROLES_PK (USER_ID_FK, ROLE_ID_FK)` — composite PK constraint, not annotatable in JPA (same limitation as above); enforced via `001_security_schema_migration_and_seed.sql`, pending DBA execution. FK names are real (`@JoinColumn(foreignKey = @ForeignKey(name = ...))`); columns renamed from `USER_ID`/`ROLE_ID`, see §9.
+ing DBA execution. FK names are real (`@JoinColumn(foreignKey = @ForeignKey(name = ...))`); columns renamed from `USER_ID`/`ROLE_ID`, see §9.
 
 #### `ROLE_PERMISSIONS`
-| Column  | Type   | Constraints                                      |
-|---------|--------|--------------------------------------------------|
-| ROLE_ID | BIGINT | FK → `ROLES(ID)` (`FK_RP_ROLE`) + PK            |
-| PERM_ID | BIGINT | FK → `PERMISSIONS(ID)` (`FK_RP_PERM`) + PK      |
+| Column     | Type   | Constraints                                      |
+|------------|--------|--------------------------------------------------|
+| ROLE_ID_FK | BIGINT | FK → `ROLES(ROLES_PK)` (`FK_RP_ROLE`) + PK       |
+| PERM_ID_FK | BIGINT | FK → `PERMISSIONS(PERMISSIONS_PK)` (`FK_RP_PERM`) + PK |
 
-PK: `ROLE_PERMISSIONS_PK (ROLE_ID, PERM_ID)`
-
----
-
-### 1.7 `SEC_MENU_ITEM` (Legacy — Deprecated)
-
-Table exists in DB schema (`V0__full_schema_create.sql`) but is **NOT actively used** by the application. The `MenuService` now builds menus dynamically from `SEC_PAGES` + permissions. The `SEC_MENU_ITEM` table is a legacy artifact.
+PK: `ROLE_PERMISSIONS_PK (ROLE_ID_FK, PERM_ID_FK)` — same treatment as `USER_ROLES` above. FK names are real; columns renamed from `ROLE_ID`/`PERM_ID`, see §9.
 
 ---
 
@@ -174,6 +167,7 @@ Table exists in DB schema (`V0__full_schema_create.sql`) but is **NOT actively u
 - Response: `{ "accessToken": "string", "expiresIn": 900 }`
 - Side effect: Sets `refresh_token` HttpOnly cookie
 - Validation: `@NotBlank` on username and password
+- Rate-limited: see §5.8. Exceeding the limit → `429` `RATE_LIMIT_LOGIN_EXCEEDED` with a `Retry-After` header (seconds)
 
 **POST `/api/auth/login-token`**
 - Request: same as login
@@ -247,7 +241,8 @@ Table exists in DB schema (`V0__full_schema_create.sql`) but is **NOT actively u
 
 **POST `/api/roles`** → Create Role
 - Request: `CreateRoleRequest { roleCode (uppercase pattern ^[A-Z][A-Z0-9_]*$), roleName, description, active }`
-- `roleCode` is stored as `NAME` in DB (normalized to UPPERCASE)
+- `roleCode` is normalized to UPPERCASE and persisted to its own `ROLE_CODE` column; `roleName` and `description` are persisted as given to `NAME`/`DESCRIPTION`
+- Duplicate `roleCode` → `409` `DUPLICATE_ROLE_CODE`; duplicate `roleName` → `409` `DUPLICATE_ROLE_NAME`
 - Response: `ApiResponse<RoleDto>`
 
 **PUT `/api/roles/{roleId}/toggle-active`**
@@ -354,7 +349,9 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 
 8. **The system MUST auto-assign `ROLE_USER` to newly created users** — if `ROLE_USER` exists.
 
-9. **The system MUST prevent duplicate role names globally** — DB: `UK_ROLES_NAME`. Service: explicit pre-check → `DUPLICATE_ROLE_CODE`.
+9. **The system MUST prevent duplicate role names globally** — DB: `UK_ROLES_NAME`. Service: explicit pre-check → `DUPLICATE_ROLE_NAME`.
+
+9a. **The system MUST prevent duplicate role codes globally** — DB: `UK_ROLES_ROLE_CODE`. Service: explicit pre-check → `DUPLICATE_ROLE_CODE`.
 
 10. **The system MUST prevent deleting a role that is assigned to users** — Pre-check: `hasUserAssignments()` → `ROLE_IN_USE` (Status 409 Conflict).
 
@@ -386,11 +383,13 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 
 24. **The system MUST reject Copy Permissions if the source role has zero page-scoped permissions** — `RoleAccessService.copyPermissionsFromRole()` → `NO_PERMISSIONS_TO_COPY` (Status `CONFLICT` → HTTP 409, same pattern as `ROLE_IN_USE`).
 
-25. **The system MUST only copy page-scoped permissions (`PAGE_ID_FK IS NOT NULL`) in Copy Permissions, never system-level permissions** — `Permission.isPagePermission()` filters both the source read and the target's existing-row deletion; the target's pre-existing system-level permissions are preserved. Privilege-escalation guard — added 2026-07-07 gap closure (previously the endpoint copied ALL `ROLE_PERMISSIONS` rows unfiltered, a real privilege-escalation defect; see §9 v2.3.0).
+25. **The system MUST only copy page-scoped permissions (`PAGE_ID_FK IS NOT NULL`) in Copy Permissions, never system-level permissions** — `Permission.isPagePermission()` filters both the source read and the target's existing-row deletion; the target's pre-existing system-level permissions are preserved. Privilege-escalation guard (see §9).
 
 26. **The system MUST purge expired refresh tokens periodically** — `RefreshTokenCleanupJob` (`@Scheduled`, cron `erp.security.token-cleanup.cron`, default daily 03:00) calls `RefreshTokenRepository.deleteByExpiresAtBefore(now())`.
 
 27. **The system MUST purge revoked refresh tokens older than a configured retention window** — same `RefreshTokenCleanupJob` run, `RefreshTokenRepository.deleteByRevokedTrueAndCreatedAtBefore(cutoff)`, cutoff = now − `erp.security.token-cleanup.revoked-retention-days` (default 30). `REFRESH_TOKENS` has no separate "revoked at" timestamp, so `CREATED_AT` is used as the age reference — a revoked token is retained at most `retention-days` from when it was originally issued, not from when it was revoked.
+
+28. **The system MUST rate-limit login attempts by IP+username** — `LoginRateLimitFilter` (§5.8). Exceeding `erp.security.rate-limit.login.max-attempts` within `window-seconds` blocks that IP+username pair for `lockout-seconds` → `429` `RATE_LIMIT_LOGIN_EXCEEDED`.
 
 ---
 
@@ -480,13 +479,12 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 - Credentials: `true`
 - Allowed origins: configurable via `erp.security.cors.allowed-origins`
 
-### 5.6 Cache Configuration (as of 2026-07-07 — see §9 v2.3.0)
+### 5.6 Cache Configuration
 
-- `@EnableCaching` is active in both `RedisCacheConfig.java` and `ErpMainApplication.java` (see §7.4 — there are two independent `@SpringBootApplication` entry points, and caching was enabled in both).
-- **Currently zero active `@Cacheable` methods in the module.** `UserService.getUserRoleNames()`'s `@Cacheable("userRoleNames")` was deliberately removed (not left disabled) — it cached USERS-derived authorization data, which this module's policy forbids caching regardless of TTL (freshness/security decision). `PermissionService`'s `@CacheEvict`s on `permissionByName`/`permissionsList` remain — they are eviction-only with no populate-side `@Cacheable`, i.e. currently inert no-ops, same as `UserService`'s `users`/`userRoles` evictions.
-- `spring.cache.cache-names` in `application.properties` no longer lists `userRoleNames` (removed alongside the annotation).
-- ⚠️ **`application-prod.properties` sets `spring.cache.type=simple`**, overriding the base `application.properties`'s `spring.cache.type=redis`. Since no `@Cacheable` is currently active, this has no live effect today, but if a populate-side cache is added later without checking this, the prod profile will silently use in-memory `ConcurrentMapCacheManager` (no TTL, unbounded, per-instance) instead of Redis. *(TD-SEC-001 — flag before relying on caching in prod.)*
-- ⚠️ `ErpMainApplication`'s `@SpringBootApplication(excludeName = {"org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration", ...})` appears to target a stale pre-Boot-4 FQCN — verified live (booted against local Redis+Postgres) that a `RedisConnectionFactory` bean is still created and `RedisCacheConfig.cacheManager()` resolves fine, so the exclude is currently a no-op. *(TD-SEC-002 — low-priority cleanup, not blocking.)*
+- `@EnableCaching` is active in both `RedisCacheConfig.java` and `ErpMainApplication.java` (see §7.4 — two independent `@SpringBootApplication` entry points, both with caching enabled).
+- **Currently zero active `@Cacheable` methods in the module.** `PermissionService`'s `@CacheEvict`s on `permissionByName`/`permissionsList` are eviction-only with no populate-side `@Cacheable` — currently inert no-ops. `UserService`'s USERS-derived data is deliberately never cached (freshness/security policy).
+- `application-prod.properties` and `application.properties` both set `spring.cache.type=redis` (previously mismatched: prod used `simple`). Redis runs as its own container in `deploy/docker-compose.yml`, with the backend's startup gated on its healthcheck.
+- `ErpMainApplication`'s `excludeName` no longer references `RedisAutoConfiguration`/`RedisRepositoriesAutoConfiguration` — confirmed no-op before removal (`RedisCacheConfig.cacheManager(RedisConnectionFactory)` has no other bean source for its constructor param, so Boot's real autoconfiguration was supplying it regardless).
 
 ### 5.7 Scheduled Jobs
 
@@ -495,6 +493,18 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
   - `erp.security.token-cleanup.revoked-retention-days` — retention window in days, default `30`
   - Both bound via `RefreshTokenCleanupProperties` (`@ConfigurationProperties(prefix = "erp.security.token-cleanup")`, registered in `SecurityPropertiesConfig`)
   - Requires `@EnableScheduling` — present on both `ErpMainApplication` and `SecurityOracleJwtApplication` (§7.4)
+
+### 5.8 Login Rate Limiting
+
+- **`LoginRateLimitFilter`** (`com.example.security.security`, `OncePerRequestFilter`) — registered in `SecurityConfig` via `addFilterBefore(loginRateLimitFilter, UsernamePasswordAuthenticationFilter.class)`, ahead of `JwtAuthenticationFilter`
+  - Matches `POST /api/auth/login` and `POST /api/auth/signup` (path-matched generically so it covers signup once that endpoint exists — no code change needed there)
+  - Reads the request body via `CachedBodyHttpServletRequest` (caches bytes so the `@RequestBody` argument resolver downstream can still read it) to extract `username`; IP taken from `X-Forwarded-For` (first entry) falling back to `getRemoteAddr()`
+  - Rate-limit key: `"<ip>|<username-lowercased>"` — never IP alone, so one endpoint cannot be used to lock out unrelated accounts, and vice versa
+  - Enforcement: `LoginRateLimiterService`, in-memory `Bucket4j` bucket per key (`com.bucket4j:bucket4j-core:8.10.1`) sized `max-attempts` per `window-seconds`; exceeding it additionally sets an explicit lockout of `lockout-seconds` (separate from the bucket's own refill) tracked in a side `ConcurrentHashMap`
+  - **Not shared across instances** — acceptable for the current single-container deployment (`deploy/docker-compose.yml`). Must move to Redis if the backend is ever horizontally scaled.
+  - On block: `429`, `Retry-After` header (seconds remaining), bilingual body via `LocalizationService` + the standard `ApiResponse`/`ApiError` envelope (message key `RATE_LIMIT_LOGIN_EXCEEDED`) — resolved directly from the `Accept-Language` header (not `LocaleContextHolder`, since this filter can run before Spring MVC's locale resolution is established)
+- **`LoginRateLimitProperties`** (`@ConfigurationProperties(prefix = "erp.security.rate-limit.login")`): `max-attempts` (default 5), `window-seconds` (default 60), `lockout-seconds` (default 300)
+- Frontend: `auth-login.component.ts` reads `Retry-After` on a `429` and disables the submit button with a live countdown (`AUTH.RETRY_IN_SECONDS`); does not auto-retry
 
 ---
 
@@ -528,7 +538,7 @@ Allowed sort fields: `id`, `name`, `module`, `createdAt`, `updatedAt`
 
 - Other modules (GL, Finance, etc.) seed their pages into `SEC_PAGES` as well — the Security module owns the `SEC_PAGES` table structure
 
-### 7.4 Deployment Entry Points (discovered 2026-07-07, see §9 v2.3.0)
+### 7.4 Deployment Entry Points
 
 There are **two** independent `@SpringBootApplication` classes that can boot the security module — this matters for any config decision that lives on the application class (`@EnableCaching`, `@EnableScheduling`, component scan, autoconfig excludes, etc.):
 
@@ -536,65 +546,3 @@ There are **two** independent `@SpringBootApplication` classes that can boot the
 - **`com.example.security.SecurityOracleJwtApplication`** (`erp-security` module) — a standalone/dev bootstrap for running the security module in isolation (also port 7272 standalone per its own Javadoc). Not used in the assembled production deployment; `erp-security` is packaged as a plain `jar`, not run directly.
 
 Any `@Enable*` annotation, exclude, or app-level config added for this module must be applied to **`ErpMainApplication`** to take effect in production. `SecurityOracleJwtApplication` should be kept consistent for standalone-mode parity, but is not a substitute.
-
----
-
-## 8. WHAT IS MISSING OR INCOMPLETE
-
-1. **✅ RESOLVED 2026-07-07** — ~~Redis caching is DISABLED~~. `@EnableCaching` is now active (`RedisCacheConfig.java` AND `ErpMainApplication.java` — the actual production entry point; this item's original text only knew about `RedisCacheConfig`). One pre-existing populate-side `@Cacheable` (`UserService.getUserRoleNames`, USERS-backed) was found and **removed** rather than activated — activating it would have violated the module's own "never cache USERS data" policy the moment caching infra went live. Net effect: caching infrastructure is on, but zero `@Cacheable` methods are currently active in the module. Details: §5.6.
-
-2. **⚠️ `roleCode` and `description` are `@Transient`** in `Role.java` — They appear in `CreateRoleRequest` and `RoleDto` but are not persisted to DB. Only `roleName` is stored. This creates an API contract vs. DB mismatch. *(PERMANENT EXCEPTION — AS-IS. Reviewed again 2026-07-07 during gap closure; architect explicitly chose to leave locked rather than open a master-registry Conflict. No code changed.)*
-
-3. **⚠️ `SEC_MENU_ITEM` table** exists in DB schema but is never used by `MenuService`. It is a legacy artifact. The menu is now built from `SEC_PAGES`. *(DEFERRED)*
-
-4. **✅ RESOLVED 2026-07-07** — ~~`RoleController` copy-permissions endpoint ... no controller method implementing this feature was found~~. Correction: the endpoint already existed (`POST /api/roles/{roleId}/copy-from/{sourceRoleId}`, `RoleAccessService.copyPermissionsFromRole()`) with full backend + frontend wiring — this item's original text was wrong, not just stale. However its actual behavior was a raw full-copy of ALL `ROLE_PERMISSIONS` rows (including system-level permissions), a genuine privilege-escalation defect, and `NO_PERMISSIONS_TO_COPY` was never thrown despite the error code existing. Fixed to page-scoped-only copy (architect-confirmed scope decision) with proper empty-source validation. Details: §2.3, Rules 24–25.
-
-5. **⚠️ PK naming convention deviation** — `USERS.ID`, `ROLES.ID`, `PERMISSIONS.ID`, `REFRESH_TOKENS.ID` use `ID` instead of the project convention `ID_PK`. Only `SEC_PAGES` follows the `ID_PK` convention. *(PERMANENT EXCEPTION — AS-IS. Reviewed again 2026-07-07; architect explicitly declined the rename given the live-PK/FK-cascade migration risk versus a pure naming-consistency benefit. No code changed.)*
-
-6. **⚠️ No rate limiting** on `/api/auth/login` — no protection against brute-force attacks. *(DEFERRED — infrastructure concern)*
-
-7. **✅ RESOLVED 2026-07-07** — ~~No cleanup job for expired REFRESH_TOKENS rows~~. `RefreshTokenCleanupJob` now purges both expired tokens (existing `deleteByExpiresAtBefore()`) and revoked tokens past a retention window (new `deleteByRevokedTrueAndCreatedAtBefore()`). Details: §5.7, Rules 26–27.
-
-8. **⚠️ NEW — `spring.cache.type` profile mismatch** — `application-prod.properties` overrides to `simple`, base `application.properties` sets `redis`. No live effect today since no `@Cacheable` is active (item 1), but will silently produce in-memory (not Redis) caching in prod if a populate-side cache is added later without checking this. *(DEFERRED — flag before relying on caching in prod. Details: §5.6, TD-SEC-001.)*
-
-9. **⚠️ NEW — stale `RedisAutoConfiguration` exclude** — `ErpMainApplication`'s `excludeName` list appears to reference a pre-Boot-4 FQCN and is a verified no-op (booted locally with `@EnableCaching` on and Redis reachable — connection factory still resolved fine). Low-priority cleanup. *(DEFERRED. Details: §5.6, TD-SEC-002.)*
-
----
-
-## 9. CHANGE LOG
-
-| Version | Date       | Change Summary                                              | Updated By     |
-|---------|------------|-------------------------------------------------------------|----------------|
-| 1.0.0   | 2026-04-11 | Initial extraction — full scan of erp-security module       | GitHub Copilot |
-| 2.0.0   | 2026-06-21 | Multi-tenancy removal — TENANT_ID eliminated system-wide    | Claude Code    |
-| 2.1.0   | 2026-06-26 | GAP-SEC-01/02/03 closed: @PreAuthorize added to PageController (5 endpoints) and PermissionController (2 endpoints). PERMISSION_UPDATE constant confirmed present. Tests added for 401/403/200 scenarios on all affected endpoints. | Agent (Gap Closure) |
-| 2.2.0   | 2026-06-28 | Oracle → PostgreSQL migration: column types updated in registry (NUMBER→BIGINT, NUMBER(IDENTITY)→BIGINT GENERATED ALWAYS AS IDENTITY, VARCHAR2→VARCHAR, NUMBER(1)→SMALLINT). No Java entity changes were required — all types were already PostgreSQL-compatible. | Agent (PG Migration) |
-| 2.3.0   | 2026-07-07 | Gap closure — items 1, 4, 7 resolved (see §8): (1) `@EnableCaching` activated in `RedisCacheConfig` + `ErpMainApplication`; policy-violating `userRoleNames` USERS-cache found and removed rather than activated. (4) Copy Permissions endpoint corrected from unfiltered full-copy (privilege-escalation defect) to page-scoped-only copy with `NO_PERMISSIONS_TO_COPY` validation (architect-confirmed scope). (7) `RefreshTokenCleanupJob` added for expired + revoked token purging (new repository method `deleteByRevokedTrueAndCreatedAtBefore`). Items 2 and 5 reviewed and explicitly kept as PERMANENT EXCEPTION (architect decision, no code change). New facts documented: two independent deployment entry points (§7.4), cache/scheduler config (§5.6–5.7), two new tech-debt items 8–9. All changes verified via live boot (Postgres+Redis) + full test suite (20 tests, `erp-security`). | Agent (Gap Closure) |
-
-### ⚠️ GAP-SEC ID namespace note (flagged 2026-07-07)
-
-The v2.1.0 entry below reused the labels "GAP-SEC-01/02/03" for a **different** set of items (`@PreAuthorize` additions to `PageController`/`PermissionController`) than the "GAP-SEC-01/02/.../07" numbering used by this session's source documents (`gap-closure-register-SEC.md`), which maps 1:1 to this section's numbered items 1–7 above (GAP-SEC-01 = item 1, GAP-SEC-04 = item 4, GAP-SEC-07 = item 7, etc.). These are two unrelated numbering sequences that happen to collide on the same IDs. Anyone cross-referencing this change log against a `GAP-SEC-0N` reference from a different document should confirm which sequence is meant. Recommend renaming the historical v2.1.0 sequence (e.g. to `GAP-SEC-LEGACY-01/02/03`) the next time this file is touched by whoever owns the gap register — not done unilaterally here since it would mean editing a past change-log entry's meaning.
-
-### v2.0.0 — Multi-Tenancy Removal Detail
-
-**Deleted classes** (7 files from `erp-common-utils`):
-- `TenantContext` — ThreadLocal holder
-- `TenantHelper` — static helper with `requireTenant()`
-- `TenantEntityListener` — JPA `@PrePersist`/`@PreUpdate` listener
-- `TenantScoped` — interface with `getTenantId()`/`setTenantId()`
-- `TenantAuditableEntity` — `@MappedSuperclass` with `TENANT_ID` column
-- `TenantLoggingFilter` — MDC logging filter
-- `TenantProperties` — `@ConfigurationProperties` for `X-Tenant-ID` header
-
-**Entity changes**: All 5 security entities now extend `AuditableEntity` directly. `TENANT_ID` column removed. Unique constraints renamed to single-column (no tenant scope):
-- `UK_USERS_TENANT_USERNAME` → `UK_USERS_USERNAME (USERNAME)`
-- `UK_ROLES_TENANT_NAME` → `UK_ROLES_NAME (NAME)`
-- `UK_PAGES_TENANT_CODE` → `UK_PAGES_CODE (PAGE_CODE)`
-- `UK_PAGES_TENANT_ROUTE` → `UK_PAGES_ROUTE (ROUTE)`
-- `UK_PERMS_TENANT_NAME` → `UK_PERMS_NAME (NAME)`
-
-**JWT changes**: `tenant` claim removed from both access and refresh tokens. `JwtProperties.tenantClaim` removed. `JwtService.extractTenant()` removed.
-
-**Service changes**: All `TenantHelper.requireTenant()` call sites removed (38 total across 7 services). All repository calls switched to non-tenant equivalents.
-
-**DB migration**: `remove_tenant_id.sql` script at `erp-security/src/main/resources/db/scripts/` drops TENANT_ID columns and adds new single-column unique constraints. Must be run manually by DBA.
