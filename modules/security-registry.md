@@ -1,13 +1,28 @@
 # registry-security.md
 ════════════════════════════════════════
 Module       : SECURITY
-Version      : 2.4.0
-Last Updated : 2026-07-08
+Version      : 2.4.1
+Last Updated : 2026-07-09
+Status       : Complete (core AS-IS) + DataScope Extension IN PROGRESS ⚠️
 ════════════════════════════════════════
+
+⚠️ Upload Note (this session): the v2.4.0 base uploaded by the user
+ends at §7.4 and omits Section 8 (What Is Missing) and Section 9
+(referenced "see §9" six times in §1 for the PK-rename/naming
+migration, but not included — likely a paste/export truncation).
+Sections 8–10 below are RECONSTRUCTED: baseline items (rate limiting,
+cleanup job, copy-permissions) are updated to IMPLEMENTED per this
+session's confirmed read of §2.3/§3/§5.7/§5.8; the DataScope/Forgot-
+Password/Sign-Up planned items (1.8–1.10, 2.7) are carried forward
+unchanged from v2.3.0, since nothing in the new upload touches them.
+The naming-migration detail originally slated for §9 could not be
+reconstructed — ask for a re-export if that detail is needed verbatim.
 
 ---
 
-## 1. ENTITIES & DB ST> **Naming-convention note**: PK column names (`USERS_PK`, `ROLES_PK`, `PERMISSIONS_PK`, `REFRESH_TOKENS_PK`, `SEC_PAGES_PK`) and FK constraint names (`FK_*`) are both real and grep-able in `erp-security/src/main/java` (`@Column(name = ...)` and `@JoinColumn(foreignKey = @ForeignKey(name = ...))` respectively) — matching how `erp-org`/`erp-masterdata` already name things, and this project's own `create-entity` skill (rules A.1.2, A.1.15). **PK constraint names**, however, cannot be set via any JPA/Hibernate annotation (verified by decompiling `hibernate-core-7.2.0.Final.jar`: neither `PhysicalNamingStrategy` nor `ImplicitNamingStrategy` has a PK-constraint hook) — those are enforced only by the `pg_constraint`-driven block in `001_security_schema_migration_and_seed.sql`, and only take effect once a DBA runs it (`ddl-auto=none`, no Flyway wired up for `erp-security`). `CK_*` (check constraint) names are not asserted anywhere in this document — no `@Check` usage exists in this project; get real CHECK definitions from the DBA/live schema.
+## 1. ENTITIES & DB STRUCTURE
+
+> **Naming-convention note**: PK column names (`USERS_PK`, `ROLES_PK`, `PERMISSIONS_PK`, `REFRESH_TOKENS_PK`, `SEC_PAGES_PK`) and FK constraint names (`FK_*`) are both real and grep-able in `erp-security/src/main/java` (`@Column(name = ...)` and `@JoinColumn(foreignKey = @ForeignKey(name = ...))` respectively) — matching how `erp-org`/`erp-masterdata` already name things, and this project's own `create-entity` skill (rules A.1.2, A.1.15). **PK constraint names**, however, cannot be set via any JPA/Hibernate annotation (verified by decompiling `hibernate-core-7.2.0.Final.jar`: neither `PhysicalNamingStrategy` nor `ImplicitNamingStrategy` has a PK-constraint hook) — those are enforced only by the `pg_constraint`-driven block in `001_security_schema_migration_and_seed.sql`, and only take effect once a DBA runs it (`ddl-auto=none`, no Flyway wired up for `erp-security`). `CK_*` (check constraint) names are not asserted anywhere in this document — no `@Check` usage exists in this project; get real CHECK definitions from the DBA/live schema.
 
 ### 1.1 `USERS` → `UserAccount.java`
 
@@ -16,6 +31,7 @@ Last Updated : 2026-07-08
 | USERS_PK    | BIGINT GENERATED ALWAYS AS IDENTITY | NOT NULL | — | Primary Key             |
 | USERNAME    | VARCHAR(80)                     | NOT NULL | —       | UK: `UK_USERS_USERNAME`        |
 | PASSWORD    | VARCHAR(200)                    | NOT NULL | —       | BCrypt hash                    |
+| EMAIL       | VARCHAR(150)                    | NULL     | —       | ⚠️ No UK yet — see AQ-008 (OPEN, master-registry Section 14). Added directly to USERS (not SEC_USER_PROFILE) because SEC_USER_PROFILE.BRANCH_ID_FK is NOT NULL, which would block self-registration (Sign Up) before a branch is assigned. |
 | ENABLED     | SMALLINT                        | NOT NULL | 1       | Boolean flag (0/1)             |
 | CREATED_AT  | TIMESTAMP                       | NOT NULL | —       | Audit                          |
 | CREATED_BY  | VARCHAR(100)                    | NOT NULL | —       | Audit                          |
@@ -546,3 +562,99 @@ There are **two** independent `@SpringBootApplication` classes that can boot the
 - **`com.example.security.SecurityOracleJwtApplication`** (`erp-security` module) — a standalone/dev bootstrap for running the security module in isolation (also port 7272 standalone per its own Javadoc). Not used in the assembled production deployment; `erp-security` is packaged as a plain `jar`, not run directly.
 
 Any `@Enable*` annotation, exclude, or app-level config added for this module must be applied to **`ErpMainApplication`** to take effect in production. `SecurityOracleJwtApplication` should be kept consistent for standalone-mode parity, but is not a substitute.
+---
+
+## 8. DATASCOPE EXTENSION — PLANNED (carried forward from v2.3.0, unchanged)
+
+### 8.1 `SEC_USER_PROFILE` — ⚠️ DESIGNED — NOT YET IMPLEMENTED
+
+**Status: Architecture decision LOCKED (master-registry v2.9.0) — table does NOT exist in code/DB yet.**
+
+| Column           | Type       | Nullable | Constraints                                       |
+|------------------|------------|----------|------------------------------------------------------|
+| USER_ID_FK       | BIGINT     | NOT NULL | FK → `USERS(USERS_PK)` — 1:1 with UK               |
+| BRANCH_ID_FK     | BIGINT     | NOT NULL | FK → `ORG_BRANCH(BRANCH_PK)` — HARD-FK             |
+| FULL_NAME_AR     | VARCHAR    | —        | Not further specified — TBD at implementation      |
+| FULL_NAME_EN     | VARCHAR    | —        | Not further specified — TBD at implementation      |
+| PREFERRED_LANG   | —          | —        | Not further specified — TBD at implementation      |
+| EMPLOYEE_ID_FK   | BIGINT     | NULLABLE | Nullable now — activates when HR module exists     |
+| IS_ACTIVE_FL     | SMALLINT   | NOT NULL | Standard flag field (DEFAULT 1)                    |
+| Audit fields     | —          | —        | CREATED_BY/AT, UPDATED_BY/AT (standard)            |
+
+⚠️ **Removed from this table (was previously listed here in error):** `EMAIL`.
+EMAIL lives on `USERS` (§1.1), not here — moved there because
+`BRANCH_ID_FK` on this table is `NOT NULL`, which would block
+self-registration (Sign Up) before a branch is assigned. Keeping it
+in both places would have been a contradictory duplicate.
+
+### 8.2 `SEC_ROLE_BRANCH` — ⚠️ DESIGNED — NOT YET IMPLEMENTED
+
+**Status: Architecture decision LOCKED (master-registry v2.9.0) — table does NOT exist in code/DB yet.**
+
+| Column             | Type       | Nullable | Constraints                                              |
+|--------------------|------------|----------|-------------------------------------------------------------|
+| ROLE_ID_FK         | BIGINT     | NOT NULL | FK → `ROLES(ROLES_PK)`                                    |
+| BRANCH_ID_FK       | BIGINT     | NOT NULL | FK → `ORG_BRANCH(BRANCH_PK)` — HARD-FK                    |
+| DATA_ACCESS_LEVEL  | —          | NOT NULL | LOV: `BRANCH_ONLY` / `BRANCH_AND_CHILDREN` / `ALL`       |
+| IS_ACTIVE_FL       | SMALLINT   | NOT NULL | Standard flag field (DEFAULT 1)                           |
+| Audit fields       | —          | —        | CREATED_BY/AT, UPDATED_BY/AT (standard)                   |
+
+UK on `(ROLE_ID_FK, BRANCH_ID_FK)`.
+
+### 8.3 JWT `allowedBranches[]` Claim — ⚠️ DESIGNED — NOT YET IMPLEMENTED
+
+Not present in `JwtService`/`JwtProperties` (confirmed against §5.3 of
+this same v2.4.0 upload — still only `sub`, `authorities[]`, `userId`).
+
+### 8.4 DataScope Management APIs — ⚠️ DESIGNED — NOT YET IMPLEMENTED
+
+8 endpoints (4 per table, `SEC_USER_PROFILE` / `SEC_ROLE_BRANCH`) + new
+constants in `SecurityPermissions.java`. Exact paths/contracts TBD.
+
+### 8.5 Forgot Password — 🆕 PROPOSED (this extension)
+
+`PASSWORD_RESET_TOKEN` entity (mirrors `REFRESH_TOKENS`) + rules 24–28
+per module-registry-SEC.md. Blocked on NotificationService (1.8, NOT
+STARTED) and on `USERS.EMAIL` (added as an interim column, see AUTO-
+DECISIONS in module-registry-SEC.md).
+
+### 8.6 Sign Up — 🆕 PROPOSED (this extension)
+
+Public self-registration, `ENABLED=0` at creation, activated via
+`ACCOUNT_ACTIVATION_TOKEN` (email link, same pattern as Forgot
+Password) sent through NotificationService. Rules 29–31 per
+module-registry-SEC.md. **Rate limiting is already covered** —
+`LoginRateLimitFilter` (§5.8 above) path-matches `/api/auth/signup`
+generically, no additional work needed.
+
+---
+
+## 9. WHAT IS MISSING OR INCOMPLETE
+
+1. **⚠️ No LOV table backing `SEC_PAGES.MODULE`** — raw string field, no FK to a lookup table. *(carried forward, unchanged)*
+2. **⚠️ `SEC_MENU_ITEM` legacy table** — present but unused; superseded by dynamic menu-building from `SEC_PAGES` (§2.6/§7.3 pattern). *(carried forward — could not re-verify exact detail this session, see Upload Note above)*
+3. ✅ **CLOSED as of v2.4.0**: rate limiting on `/api/auth/login` — `LoginRateLimitFilter` + Bucket4j implemented, also covers `/api/auth/signup` generically (§5.8, rule 28).
+4. ✅ **CLOSED as of v2.4.0**: scheduled cleanup job for expired/revoked refresh tokens — `RefreshTokenCleanupJob` implemented (§5.7, rules 26–27).
+5. ✅ **CLOSED as of v2.4.0**: copy-permissions endpoint — `POST /api/roles/{roleId}/copy-from/{sourceRoleId}` implemented (§2.3, rules 24–25).
+6. **⚠️ PK column renames pending DBA execution** — `001_security_schema_migration_and_seed.sql` written but `ddl-auto=none`, no Flyway wired up; renames not yet live until a DBA runs it.
+7. **⚠️ `SEC_USER_PROFILE` table not implemented** — see §8.1. *(NOT YET IMPLEMENTED — pending dev)*
+8. **⚠️ `SEC_ROLE_BRANCH` table not implemented** — see §8.2. *(NOT YET IMPLEMENTED — pending dev)*
+9. **⚠️ JWT `allowedBranches[]` claim not implemented** — see §8.3, blocked by #8. *(NOT YET IMPLEMENTED — pending dev)*
+10. **⚠️ 8 DataScope API endpoints not implemented** — see §8.4. *(NOT YET IMPLEMENTED — pending dev)*
+11. **⚠️ Forgot Password not implemented** — see §8.5. *(NOT YET IMPLEMENTED — blocked on NotificationService + USERS.EMAIL)*
+12. **⚠️ Sign Up not implemented** — see §8.6. *(NOT YET IMPLEMENTED — blocked on NotificationService)*
+13. **⚠️ Cycle 2 findings** — tracked separately in `implementation-gaps-SEC-cycle2.md` (not duplicated here).
+
+---
+
+## 10. CHANGE LOG
+
+| Version | Date       | Change                                                                                                                                                                                                | By |
+|---------|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----|
+| 2.2.0   | 2026-06-28 | Oracle → PostgreSQL migration: column types updated (NUMBER→BIGINT etc.). No Java entity changes required. | Agent (PG Migration) |
+| 2.3.0   | 2026-07-07 | DataScope Extension documented: `SEC_USER_PROFILE`, `SEC_ROLE_BRANCH`, JWT `allowedBranches[]`, 8 planned API endpoints — all ⚠️ DESIGNED-NOT-IMPLEMENTED. | Agent (DataScope Extension) |
+| 2.4.0   | 2026-07-08 | User-supplied re-scan of actual code: rate limiting (`LoginRateLimitFilter`), scheduled cleanup (`RefreshTokenCleanupJob`), copy-permissions endpoint all now IMPLEMENTED. PK columns renamed (pending DBA execution). `Role.roleCode`/`description` now persisted. ⚠️ Upload omitted §8–§9 present in v2.3.0 — reconstructed this session (see Upload Note), naming-migration table (§9 original) not recoverable. | User re-scan + Agent reconciliation |
+| 2.4.1   | 2026-07-09 | Fixed internal inconsistency: `EMAIL` was referenced in §8.5 prose as added to `USERS` but missing from the §1.1 `USERS` table definition, while still duplicated in §8.1 `SEC_USER_PROFILE`. Added `EMAIL` to §1.1 (nullable, no UK — pending AQ-008 in master-registry, still OPEN); removed the duplicate from §8.1 with a note explaining the original rationale (avoids `SEC_USER_PROFILE.BRANCH_ID_FK NOT NULL` blocking self-registration). No architectural decision changed — data-consistency fix only. | Agent (consistency fix) |
+
+---
+*End of registry-security.md*
