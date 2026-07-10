@@ -53,7 +53,7 @@ Applied globally by shared middleware — not endpoint-specific.
 
 ## Common Response Envelope
 
-Schema: `ApiResponseUserDto`
+Schema: `ApiResponseSecUserProfileDto`
 
 | Field | Type | Required | Constraints | Description |
 |---|---|---|---|---|
@@ -73,16 +73,16 @@ Schema: `ApiResponseUserDto`
 
 ## Pagination Envelope
 
-Schema: `PageUserDto`
+Schema: `PageSecUserProfileDto`
 
 | Field | Type | Required | Constraints | Description |
 |---|---|---|---|---|
 | totalElements | integer (int64) | No |  |  |
 | totalPages | integer (int32) | No |  |  |
-| pageable | Pageable | No |  |  |
 | numberOfElements | integer (int32) | No |  |  |
 | first | boolean | No |  |  |
 | last | boolean | No |  |  |
+| pageable | Pageable | No |  |  |
 | size | integer (int32) | No |  |  |
 | number | integer (int32) | No |  |  |
 | sort | Sortnull | No |  |  |
@@ -90,13 +90,12 @@ Schema: `PageUserDto`
 
 ## Pagination Constraints
 
-Source: `com/erp/common/search/PageableBuilder.java`
+Source: `com/example/erp/common/dto/BaseSearchContractRequest.java`
 
 | Constraint | Value |
 |---|---|
 | Default page | 0 |
 | Default size | 20 |
-| Maximum size | 100 |
 
 ## Known Error Codes
 
@@ -133,9 +132,21 @@ Source: `com/erp/common/search/PageableBuilder.java`
 | NO_REFRESH_COOKIE | `NO_REFRESH_COOKIE` | com/example/security/exception/SecurityErrorCodes.java | UNAUTHORIZED | UNAUTHORIZED |
 | REFRESH_REVOKED | `REFRESH_REVOKED` | com/example/security/exception/SecurityErrorCodes.java | UNAUTHORIZED | UNAUTHORIZED |
 | REFRESH_EXPIRED_OR_REVOKED | `REFRESH_EXPIRED_OR_REVOKED` | com/example/security/exception/SecurityErrorCodes.java | UNAUTHORIZED | UNAUTHORIZED |
+| RATE_LIMIT_LOGIN_EXCEEDED | `RATE_LIMIT_LOGIN_EXCEEDED` | com/example/security/exception/SecurityErrorCodes.java |  |  |
 | INVALID_OPERATION | `INVALID_OPERATION` | com/example/security/exception/SecurityErrorCodes.java | BAD_REQUEST | BAD_REQUEST |
-| NO_PERMISSIONS_TO_COPY | `NO_PERMISSIONS_TO_COPY` | com/example/security/exception/SecurityErrorCodes.java |  |  |
+| NO_PERMISSIONS_TO_COPY | `NO_PERMISSIONS_TO_COPY` | com/example/security/exception/SecurityErrorCodes.java | CONFLICT |  |
 | DB_CONSTRAINT_VIOLATION | `DB_CONSTRAINT_VIOLATION` | com/example/security/exception/SecurityErrorCodes.java |  |  |
+| SEC_USER_PROFILE_NOT_FOUND | `SEC_USER_PROFILE_NOT_FOUND` | com/example/security/exception/SecurityErrorCodes.java | NOT_FOUND | NOT_FOUND |
+| SEC_USER_PROFILE_ALREADY_EXISTS | `SEC_USER_PROFILE_ALREADY_EXISTS` | com/example/security/exception/SecurityErrorCodes.java | ALREADY_EXISTS | CONFLICT |
+| SEC_ROLE_BRANCH_NOT_FOUND | `SEC_ROLE_BRANCH_NOT_FOUND` | com/example/security/exception/SecurityErrorCodes.java | NOT_FOUND | NOT_FOUND |
+| SEC_USER_PROFILE_BRANCH_INACTIVE | `SEC_USER_PROFILE_BRANCH_INACTIVE` | com/example/security/exception/SecurityErrorCodes.java | BAD_REQUEST | BAD_REQUEST |
+| SEC_ROLE_BRANCH_DATA_ACCESS_LEVEL_REQUIRED | `SEC_ROLE_BRANCH_DATA_ACCESS_LEVEL_REQUIRED` | com/example/security/exception/SecurityErrorCodes.java | BAD_REQUEST | BAD_REQUEST |
+| SEC_ROLE_BRANCH_DUPLICATE_ASSIGNMENT | `SEC_ROLE_BRANCH_DUPLICATE_ASSIGNMENT` | com/example/security/exception/SecurityErrorCodes.java | CONFLICT |  |
+| ACTIVATION_TOKEN_INVALID_OR_EXPIRED | `ACTIVATION_TOKEN_INVALID_OR_EXPIRED` | com/example/security/exception/SecurityErrorCodes.java | BAD_REQUEST | BAD_REQUEST |
+| TOKEN_ALREADY_USED | `TOKEN_ALREADY_USED` | com/example/security/exception/SecurityErrorCodes.java | BAD_REQUEST | BAD_REQUEST |
+| RESET_TOKEN_INVALID_OR_EXPIRED | `RESET_TOKEN_INVALID_OR_EXPIRED` | com/example/security/exception/SecurityErrorCodes.java | BAD_REQUEST | BAD_REQUEST |
+| SIGNUP_USERNAME_ALREADY_EXISTS | `SIGNUP_USERNAME_ALREADY_EXISTS` | com/example/security/exception/SecurityErrorCodes.java | ALREADY_EXISTS | CONFLICT |
+| SIGNUP_EMAIL_ALREADY_EXISTS | `SIGNUP_EMAIL_ALREADY_EXISTS` | com/example/security/exception/SecurityErrorCodes.java | ALREADY_EXISTS | CONFLICT |
 | VALIDATION_ERROR | `VALIDATION_ERROR` | com/example/erp/common/web/GlobalExceptionHandler.java |  | BAD_REQUEST |
 | BINDING_ERROR | `BINDING_ERROR` | com/example/erp/common/web/GlobalExceptionHandler.java |  | BAD_REQUEST |
 | INVALID_JSON | `INVALID_JSON` | com/example/erp/common/web/GlobalExceptionHandler.java |  | BAD_REQUEST |
@@ -201,17 +212,38 @@ Shared, module-independent mapping every business error code's `Status` resolves
 
 ## API Catalog
 
+### Security - DataScope - User Profiles
+
+| Method | Path | Summary | Doc |
+|---|---|---|---|
+| GET | `/api/v1/security/user-profiles/{userId}` | Get user profile by user ID | [getById](endpoints/security-datascope-user-profiles/getById.md) |
+| PUT | `/api/v1/security/user-profiles/{userId}` | Update user profile | [update](endpoints/security-datascope-user-profiles/update.md) |
+| GET | `/api/v1/security/user-profiles` | List user profiles | [list](endpoints/security-datascope-user-profiles/list.md) |
+| POST | `/api/v1/security/user-profiles` | Create user profile | [create](endpoints/security-datascope-user-profiles/create.md) |
+| POST | `/api/v1/security/user-profiles/search` | Search user profiles | [search](endpoints/security-datascope-user-profiles/search.md) |
+
+### Security - DataScope - Role Branches
+
+| Method | Path | Summary | Doc |
+|---|---|---|---|
+| GET | `/api/v1/security/role-branches/{roleId}/{branchId}` | Get a role-branch assignment | [getById_1](endpoints/security-datascope-role-branches/getById_1.md) |
+| PUT | `/api/v1/security/role-branches/{roleId}/{branchId}` | Update a role-branch assignment | [update_1](endpoints/security-datascope-role-branches/update_1.md) |
+| DELETE | `/api/v1/security/role-branches/{roleId}/{branchId}` | Remove a role-branch assignment | [delete](endpoints/security-datascope-role-branches/delete.md) |
+| GET | `/api/v1/security/role-branches` | List role-branch assignments | [list_1](endpoints/security-datascope-role-branches/list_1.md) |
+| POST | `/api/v1/security/role-branches` | Assign a branch scope to a role | [create_1](endpoints/security-datascope-role-branches/create_1.md) |
+| POST | `/api/v1/security/role-branches/search` | Search role-branch assignments | [search_1](endpoints/security-datascope-role-branches/search_1.md) |
+
 ### User Management
 
 | Method | Path | Summary | Doc |
 |---|---|---|---|
-| PUT | `/api/users/{userId}` | Update user | [update](endpoints/user-management/update.md) |
-| DELETE | `/api/users/{userId}` | Delete user | [delete](endpoints/user-management/delete.md) |
+| PUT | `/api/users/{userId}` | Update user | [update_2](endpoints/user-management/update_2.md) |
+| DELETE | `/api/users/{userId}` | Delete user | [delete_1](endpoints/user-management/delete_1.md) |
 | GET | `/api/users/{userId}/roles` | Get user roles | [getUserRoles](endpoints/user-management/getUserRoles.md) |
 | PUT | `/api/users/{userId}/roles` | Assign roles to user | [assignRoles](endpoints/user-management/assignRoles.md) |
 | GET | `/api/users` | List all users | [all](endpoints/user-management/all.md) |
-| POST | `/api/users` | Create new user | [create](endpoints/user-management/create.md) |
-| POST | `/api/users/search` | Dynamic search for users | [search](endpoints/user-management/search.md) |
+| POST | `/api/users` | Create new user | [create_2](endpoints/user-management/create_2.md) |
+| POST | `/api/users/search` | Dynamic search for users | [search_2](endpoints/user-management/search_2.md) |
 
 ### Role Access Control
 
@@ -225,7 +257,7 @@ Shared, module-independent mapping every business error code's `Status` resolves
 | PUT | `/api/roles/{roleId}/pages` | Bulk update role pages (replace mode) | [syncRolePages](endpoints/role-access-control/syncRolePages.md) |
 | POST | `/api/roles/{roleId}/pages` | Add page to role | [addPageToRole](endpoints/role-access-control/addPageToRole.md) |
 | POST | `/api/roles` | Create new role | [createRole](endpoints/role-access-control/createRole.md) |
-| POST | `/api/roles/{roleId}/copy-from/{sourceRoleId}` | Copy permissions from another role | [copyFromRole](endpoints/role-access-control/copyFromRole.md) |
+| POST | `/api/roles/{roleId}/copy-from/{sourceRoleId}` | Copy page permissions from another role | [copyFromRole](endpoints/role-access-control/copyFromRole.md) |
 | POST | `/api/roles/search` | Search roles | [searchRoles](endpoints/role-access-control/searchRoles.md) |
 | DELETE | `/api/roles/{roleId}/pages/{pageCode}` | Remove page from role | [removePageFromRole](endpoints/role-access-control/removePageFromRole.md) |
 
@@ -233,8 +265,8 @@ Shared, module-independent mapping every business error code's `Status` resolves
 
 | Method | Path | Summary | Doc |
 |---|---|---|---|
-| PUT | `/api/permissions/{id}` | Update permission | [update_1](endpoints/permission-management/update_1.md) |
-| POST | `/api/permissions` | Create new permission | [create_1](endpoints/permission-management/create_1.md) |
+| PUT | `/api/permissions/{id}` | Update permission | [update_3](endpoints/permission-management/update_3.md) |
+| POST | `/api/permissions` | Create new permission | [create_3](endpoints/permission-management/create_3.md) |
 | POST | `/api/permissions/search` | Search permissions | [searchPermissions](endpoints/permission-management/searchPermissions.md) |
 
 ### Page Management
@@ -253,10 +285,14 @@ Shared, module-independent mapping every business error code's `Status` resolves
 
 | Method | Path | Summary | Doc |
 |---|---|---|---|
+| POST | `/api/auth/signup` | Self-registration sign up | [signup](endpoints/authentication/signup.md) |
+| POST | `/api/auth/signup/activate` | Activate a self-registered account | [activate](endpoints/authentication/activate.md) |
+| POST | `/api/auth/reset-password` | Reset password | [resetPassword](endpoints/authentication/resetPassword.md) |
 | POST | `/api/auth/refresh` | Refresh access token | [refresh](endpoints/authentication/refresh.md) |
 | POST | `/api/auth/logout` | User logout | [logout](endpoints/authentication/logout.md) |
 | POST | `/api/auth/login` | User login | [login](endpoints/authentication/login.md) |
 | POST | `/api/auth/login-token` | User login with complete user information | [loginWithToken](endpoints/authentication/loginWithToken.md) |
+| POST | `/api/auth/forgot-password` | Forgot password | [forgotPassword](endpoints/authentication/forgotPassword.md) |
 
 ### Menu Management
 

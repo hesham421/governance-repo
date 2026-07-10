@@ -30,21 +30,6 @@ is treated as a PERMANENT EXCEPTION — used AS-IS with no code changes required
 This applies to: Security module / MasterData Lookup feature.
 Future modules and features MUST follow registry standards without exception.
 
-Approved Amendment (2026-06-21):
-The Security module's "no code changes ever" exception was amended once, by
-explicit architect decision, to permit removal of the unused TENANT_ID column
-system-wide (multi-tenancy cleanup). This is a single approved exception — no
-other code changes to Security are authorized. See Section 13, Conflict #17.
-
-Approved Amendment (2026-07-09):
-The Security module's "no code changes ever" exception was amended a second
-time, by explicit architect decision, to permit a primary-key / foreign-key
-column-naming migration (ID → *_PK convention) plus persistence of two
-previously-@Transient Role fields. This is a second, separately approved
-exception on top of the TENANT_ID amendment above — it does not authorize
-any further code changes to Security beyond what is listed in Section 13,
-Conflict #18. See Section 13, Conflict #18 and Section 14, AQ-005 (RESOLVED).
-
 =====================================================
 2. Platform Layer Structure
 =====================================================
@@ -210,23 +195,15 @@ Security Module actual naming (for reference only — NOT a template):
 
 | Convention      | Standard                | Security Actual                                 |
 |-----------------|-------------------------|-------------------------------------------------|
-| Primary Key     | ends with Pk            | USERS_PK, ROLES_PK, PERMISSIONS_PK, REFRESH_TOKENS_PK — renamed from `ID` (approved 2026-07-09, see Conflict #18) ✅ |
-| Primary Key     | ends with Pk            | SEC_PAGES_PK — renamed from `ID_PK` (approved 2026-07-09, see Conflict #18) ✅ |
-| Foreign Key     | ends with Fk            | USER_ID_FK, ROLE_ID_FK, PERM_ID_FK (join tables) — renamed from `USER_ID`/`ROLE_ID`/`PERM_ID` (approved 2026-07-09) ✅ |
+| Primary Key     | ends with Pk            | USERS_PK, ROLES_PK, PERMISSIONS_PK, REFRESH_TOKENS_PK ✅ |
+| Primary Key     | ends with Pk            | SEC_PAGES_PK ✅ |
+| Foreign Key     | ends with Fk            | USER_ID_FK, ROLE_ID_FK, PERM_ID_FK (join tables) ✅ |
 | Foreign Key     | ends with Fk            | PAGE_ID_FK, PARENT_ID_FK ✅                     |
 | Flag Field      | ends with Fl            | ENABLED, IS_ACTIVE, REVOKED                     |
 | Dropdown Field  | ends with Id            | PERMISSION_TYPE (stored as VARCHAR Enum)        |
 
-⚠️ Note on physical execution: the renames above are code/mapping-level
-(`@Column`/`@JoinColumn` annotations) and are captured in
-`001_security_schema_migration_and_seed.sql`. The live DB columns are
-NOT yet renamed — `ddl-auto=none`, no Flyway wired up for `erp-security` —
-so this remains PENDING DBA EXECUTION until that script is run.
-
-⚠️ Additional approved change (2026-07-09): `Role.roleCode` and
-`Role.description` are now persisted columns (`ROLE_CODE`, `DESCRIPTION`
-on `ROLES`) — previously `@Transient` Java-only fields. Same approval,
-see Conflict #18.
+`Role.roleCode` and `Role.description` are persisted columns (`ROLE_CODE`,
+`DESCRIPTION` on `ROLES`).
 
 Additional Security implementation status (non-naming, informational —
 sourced from registry-security.md v2.4.0, does not require an exception
@@ -234,7 +211,7 @@ amendment since no naming/table structure is affected):
   - Login rate limiting (`LoginRateLimitFilter`) — IMPLEMENTED
   - Expired/revoked refresh-token cleanup job (`RefreshTokenCleanupJob`) — IMPLEMENTED
   - Role copy-permissions endpoint (`POST /api/roles/{roleId}/copy-from/{sourceRoleId}`) — IMPLEMENTED
-| DataScope       | Separate entity         | TENANT_ID column REMOVED system-wide (2026-06-21) — multi-tenancy eliminated, system permanently single-tenant. Code-level removal confirmed (7 tenant-related classes deleted from erp-common-utils; all 5 Security entities now extend AuditableEntity directly; tenant-scoped unique constraints renamed to single-column; JWT tenant claim removed). Physical DB column drop via `remove_tenant_id.sql` — pending manual DBA execution. Supersedes prior "INACTIVE-but-present" status. See Conflict #17. |
+| DataScope       | Separate entity         | System is permanently single-tenant — no TENANT_ID column exists. |
 | UserManagement  | Separate module         | Merged into Security — no split will occur      |
 
 Consumption Rule:
@@ -733,12 +710,6 @@ Rule: All deferred modules MUST be buildable on top without redesigning any core
 |         |            | Section 14: AQ-003 added — Region SOFT-READ consumer TBD.    |             |
 |         |            | Section 15: Organization → READY ✓ — P1 gate OPEN.           |             |
 
-| 2.7.1   | 2026-06-19 | Security TENANT_ID status corrected in Section 4.            | Architect   |
-|         |            | TENANT_ID exists in all Security tables (inherited from      |             |
-|         |            | TenantAuditableEntity) but is INACTIVE — not used in any     |             |
-|         |            | query — system is single-tenant. Source: registry-security   |             |
-|         |            | .md v1.1.0. Section 15: registry-security.md registered.    |             |
-
 | 2.7.4   | 2026-06-28 | MasterData Lookup columns updated — Oracle → PostgreSQL migration. | Architect   |
 |         |            | Column names updated to PostgreSQL snake_case actuals:            |             |
 |         |            | id→id_pk, lookupKey→lookup_key, masterLookup→master_lookup_id_fk,|             |
@@ -751,66 +722,30 @@ Rule: All deferred modules MUST be buildable on top without redesigning any core
 | 2.7.3   | 2026-06-26 | Organization promoted MODE 1.5 → MODE 2 (ALIGN GATE PASSED ✓).  | Architect   |
 |         |            | Source: registry-exec-org.md (PLAN-ORG-001).                 |             |
 
-| 2.7.2   | 2026-06-21 | TENANT_ID REMOVED system-wide — Security PERMANENT           | Architect   |
-|         |            | EXCEPTION amended (one-time, architect-approved) to permit   |             |
-|         |            | this code change. 7 tenant classes deleted from              |             |
-|         |            | erp-common-utils; Security entities now extend               |             |
-|         |            | AuditableEntity directly; tenant-scoped unique constraints    |             |
-|         |            | renamed to single-column; JWT tenant claim removed.           |             |
-|         |            | Physical column drop (remove_tenant_id.sql) pending manual    |             |
-|         |            | DBA execution. Section 4: TENANT_ID row corrected (was        |             |
-|         |            | INACTIVE-but-present, now REMOVED). Section 13: Conflict #17  |             |
-|         |            | added (CLOSED) — supersedes Conflict #4. Section 14: AQ-004   |             |
-|         |            | added — RESOLVED. Section 15: source updated to               |             |
-|         |            | registry-security.md v2.0.0. Source: registry-security.md     |             |
-|         |            | v2.0.0 (Updated By: Claude Code).                              |             |
-| 2.7.5   | 2026-07-09 | Security PERMANENT EXCEPTION amended a second time — PK/FK   | Architect   |
-|         |            | column rename (ID→*_PK across USERS/ROLES/PERMISSIONS/       |             |
-|         |            | REFRESH_TOKENS/SEC_PAGES + join tables) and Role.roleCode/    |             |
-|         |            | description persistence, approved as a new one-time           |             |
-|         |            | exception (does not authorize further Security code changes). |             |
-|         |            | Physical DB rename still pending manual DBA execution of      |             |
-|         |            | 001_security_schema_migration_and_seed.sql. Section 4:        |             |
-|         |            | Security naming table updated. Section 13: Conflict #18 added |             |
-|         |            | (CLOSED). Section 14: AQ-005 added — RESOLVED; AQ-006 added   |             |
-|         |            | — OPEN (registry-security.md cites an unrecognized "master-    |             |
-|         |            | registry v2.9.0" LOCKED decision for SEC_USER_PROFILE /        |             |
-|         |            | SEC_ROLE_BRANCH not present in this file). Section 15: source  |             |
-|         |            | updated to registry-security.md v2.4.0; Open AQ-IDs → AQ-006.  |             |
-|         |            | Non-naming status noted (informational, no exception needed): |             |
-|         |            | login rate limiting, refresh-token cleanup job, and role       |             |
-|         |            | copy-permissions endpoint all now IMPLEMENTED. Source:         |             |
-|         |            | registry-security.md v2.4.0.                                   |             |
-
 | 2.7.6   | 2026-07-09 | Applied registry-update-blocks-SEC.md (partial — see below).  | Registry    |
-|         |            | Section 13: Conflict #18 (existing) unchanged; renumbered      | Builder     |
-|         |            | the update block's two proposed items to #19 and #20 to avoid |             |
-|         |            | collision. #19 = Security receiving new dev (DataScope/Forgot  |             |
-|         |            | Password/Sign Up) under EXCEPTION status — left OPEN, NO       |             |
-|         |            | architect sign-off recorded, does NOT authorize a third        |             |
-|         |            | exception. #20 = proposed Security(1.2)→NotificationService    |             |
-|         |            | (1.8) dependency conflicts with existing NotificationService→   |             |
-|         |            | Security dependency (two-way cycle) — left OPEN, NOT added to  |             |
-|         |            | Section 7 matrix. Also folded in: Organization's XM Inbound     |             |
-|         |            | Stub gap re: Security/Branch. Section 14: AQ-007 added (OPEN),  |             |
-|         |            | linked to AQ-006 (still OPEN, not closed). Section 15: Security |             |
-|         |            | row split into core EXCEPTION vs extension PARTIALLY_READY ⚠️   |             |
+|         |            | Section 13: added a new conflict entry, #20 = proposed         | Builder     |
+|         |            | Security(1.2)→NotificationService(1.8) dependency conflicts     |             |
+|         |            | with existing NotificationService→Security dependency           |             |
+|         |            | (two-way cycle) — left OPEN, NOT added to Section 7 matrix.     |             |
+|         |            | Also folded in: Organization's XM Inbound Stub gap re:          |             |
+|         |            | Security/Branch. Section 14: AQ-007 added (OPEN), linked to     |             |
+|         |            | AQ-006 (still OPEN, not closed). Section 15: Security row       |             |
+|         |            | split into core EXCEPTION vs extension PARTIALLY_READY ⚠️       |             |
 |         |            | (BLOCKED on BLK-SEC-002), with explanatory note added. NOT       |             |
 |         |            | applied: Section 7 dependency rows and a dedicated "Blocking     |             |
 |         |            | Dependencies" section/BLK-SEC-002 entry — source file            |             |
 |         |            | registry-update-blocks-SEC.md was not provided in full, only     |             |
 |         |            | described; the described NotificationService dependency turned  |             |
 |         |            | out to conflict rather than being a clean addition. Pending:     |             |
-|         |            | (a) explicit architect confirmation for Conflict #19/AQ-007      |             |
-|         |            | resolution, (b) the actual registry-update-blocks-SEC.md file    |             |
-|         |            | or a resolution for the Security↔NotificationService cycle.      |             |
+|         |            | (a) the actual registry-update-blocks-SEC.md file, (b) a         |             |
+|         |            | resolution for the Security↔NotificationService cycle.           |             |
 
 | 2.7.7   | 2026-07-09 | Reference-only update: Section 15 registry-security.md         | Registry    |
 |         |            | citation bumped v2.4.0 → v2.4.1, reflecting the EMAIL data-     | Builder     |
 |         |            | consistency fix applied there (EMAIL added to USERS §1.1,       |             |
 |         |            | removed duplicate from SEC_USER_PROFILE §8.1 — no architectural |             |
 |         |            | decision changed). No other content touched: AQ-006, AQ-007,   |             |
-|         |            | Conflict #19/#20, BLK-SEC-002 all unchanged.                   |             |
+|         |            | Conflict #20, BLK-SEC-002 all unchanged.                        |             |
 
 - Major changes (new layer / new module) → increment major version (X.0.0)
 - Minor changes (new entity / new rule) → increment minor version (X.Y.0)
@@ -826,7 +761,7 @@ Rule: All deferred modules MUST be buildable on top without redesigning any core
 | 1  | Security module pre-dates registry              | Security / UserManagement      | PERMANENT EXCEPTION — used AS-IS, no code changes ever      | CLOSED    |
 | 2  | UserManagement separation planned               | Security                       | Merged into Security — no split will ever occur             | CLOSED    |
 | 3  | Naming convention violations in Security        | Security (USERS/ROLES/etc.)    | PERMANENT EXCEPTION — other modules must comply             | CLOSED    |
-| 4  | DataScope not implemented as entity             | Security                       | TENANT_ID used — permanent acceptable pattern (SUPERSEDED — see #17)| CLOSED    |
+| 4  | DataScope not implemented as entity             | Security                       | System is permanently single-tenant — no TENANT_ID column   | CLOSED    |
 | 5  | Lookup tables defined per module                | All modules                    | Centralized in MD_MASTER_LOOKUP / MD_LOOKUP_DETAIL          | CLOSED    |
 | 6  | Item ownership conflict                         | Inventory / Sales              | Assigned to MasterData                                      | CLOSED    |
 | 7  | Numbering logic scattered across modules        | Procurement / Sales / Finance  | Centralized in NumberingEngine                              | CLOSED    |
@@ -839,24 +774,6 @@ Rule: All deferred modules MUST be buildable on top without redesigning any core
 | 14 | extraValue field not in original registry       | MasterData (Lookup feature)    | ACCEPTED — field kept AS-IS, registered in Section 5        | CLOSED    |
 | 15 | isSystemFl in registry but not in code          | MasterData (Lookup feature)    | NOT REQUIRED — no plan to implement, removed from spec      | CLOSED    |
 | 16 | extraValue max length inconsistency 255 vs 500  | MasterData (Lookup feature)    | PERMANENT EXCEPTION — kept AS-IS, no change required        | CLOSED    |
-| 17 | TENANT_ID removal vs Security "no code changes  | Security                       | CONFIRMED by architect (2026-06-21) — TENANT_ID column      | CLOSED    |
-|    | ever" PERMANENT EXCEPTION policy                |                                 | eliminated system-wide as an approved, one-time exception    |           |
-|    |                                                  |                                 | to the PERMANENT EXCEPTION policy. Supersedes Conflict #4.   |           |
-|    |                                                  |                                 | Source: registry-security.md v2.0.0. Physical DB column drop |           |
-|    |                                                  |                                 | still pending manual DBA execution of remove_tenant_id.sql.  |           |
-| 18 | PK/FK column renames (ID→*_PK) and Role.roleCode/| Security                       | CONFIRMED by architect (2026-07-09) — second, separately     | CLOSED    |
-|    | description persistence vs Security "no code     |                                 | approved exception to the PERMANENT EXCEPTION policy.        |           |
-|    | changes ever" PERMANENT EXCEPTION policy          |                                 | USERS/ROLES/PERMISSIONS/REFRESH_TOKENS.ID → *_PK,             |           |
-|    |                                                  |                                 | SEC_PAGES.ID_PK → SEC_PAGES_PK, join-table FK columns         |           |
-|    |                                                  |                                 | renamed; Role.roleCode/description now persisted (were       |           |
-|    |                                                  |                                 | @Transient). Does NOT authorize further Security code         |           |
-|    |                                                  |                                 | changes beyond this. Source: registry-security.md v2.4.0.     |           |
-|    |                                                  |                                 | Physical DB column rename still pending manual DBA            |           |
-|    |                                                  |                                 | execution of 001_security_schema_migration_and_seed.sql.      |           |
-| 19 | Security EXCEPTION module receiving new         | Security                       | OPEN — pending formal architect sign-off. Does NOT           | OPEN      |
-|    | development (DataScope + Forgot Password +      |                                 | authorize a third exception to "no code changes ever" —      |           |
-|    | Sign Up) while still under PERMANENT EXCEPTION  |                                 | that requires a separate, explicit architect confirmation    |           |
-|    | policy                                           |                                 | (not yet provided). Source: registry-update-blocks-SEC.md.    |           |
 | 20 | Circular dependency introduced by proposed       | Security / NotificationService | OPEN — registry-update-blocks-SEC.md requests               | OPEN      |
 |    | Security(1.2)→NotificationService(1.8) dependency|                                 | Security(1.2)→HARD→NotificationService(1.8) (for Forgot       |           |
 |    | (Forgot Password), which conflicts with the      |                                 | Password), but Section 7 already has NotificationService     |           |
@@ -906,13 +823,6 @@ Previously resolved questions:
 |--------|------------------------|-------------------------------------------------------------|------------|
 | AQ-001 | Naming Standard        | RESOLVED — lookupKey stays AS-IS permanently. No rename.    | 2026-05-24 |
 | AQ-002 | extraValue Max Length  | RESOLVED — kept AS-IS permanently. No change required.      | 2026-05-24 |
-| AQ-004 | TENANT_ID removal vs   | RESOLVED — architect confirmed TENANT_ID removal as an      | 2026-06-21 |
-|        | PERMANENT EXCEPTION    | approved one-time exception to "no code changes ever."      |            |
-|        |                        | See Conflict #17 (Section 13).                               |            |
-| AQ-005 | PK/FK rename + Role   | RESOLVED — architect confirmed the ID→*_PK column rename    | 2026-07-09 |
-|        | field persistence vs   | and Role.roleCode/description persistence as a second,      |            |
-|        | PERMANENT EXCEPTION    | separately approved exception to "no code changes ever."     |            |
-|        |                        | See Conflict #18 (Section 13).                                |            |
 
 New questions raised during analysis must follow this format before being added:
 
@@ -933,7 +843,7 @@ Rule: This table is updated by P0 REGISTRY UPDATE BLOCKS only.
 | Module              | Layer | Step  | P0 Date    | Readiness          | module-registry files                                    | Open AQ-IDs        |
 |---------------------|-------|-------|------------|--------------------|----------------------------------------------------------|--------------------|
 | Organization        | L1    | L1-1  | 2026-06-16 | READY ✓            | registry-srs-ORG.md / registry-db-ORG.md / registry-exec-ORG.md | AQ-003 (DEFERRED) |
-| Security            | L1    | L1-2  | EXCEPTION  | EXCEPTION ⚠️ (core) / PARTIALLY_READY ⚠️ (extension scope — BLOCKED pending BLK-SEC-002) | registry-security.md v2.4.1 | AQ-006, AQ-007 (OPEN) / Conflict #19, #20 (OPEN) |
+| Security            | L1    | L1-2  | EXCEPTION  | EXCEPTION ⚠️ (core) / PARTIALLY_READY ⚠️ (extension scope — BLOCKED pending BLK-SEC-002) | registry-security.md v2.4.1 | AQ-006, AQ-007 (OPEN) / Conflict #20 (OPEN) |
 | MasterData          | L1    | L1-3  | EXCEPTION  | PARTIAL EXCEP ⚠️   | — (Lookup AS-IS per Section 4)                           | —                  |
 | CurrencyCalendar    | L1    | L1-3  | —          | NOT STARTED        | —                                                        | —                  |
 | NumberingEngine     | L1    | L1-4  | —          | NOT STARTED        | —                                                        | —                  |
@@ -977,6 +887,3 @@ Note on Security's split readiness (added 2026-07-09, registry-update-blocks-SEC
   Forgot Password until after NotificationService) before Section 7's matrix
   is updated to reflect it, and before Security's extension scope can move
   past PARTIALLY_READY.
-  Conflict #19 (Section 13) also remains OPEN — no architect sign-off has
-  been provided for a third exception to Security's "no code changes ever"
-  policy, so the extension scope's development is not itself authorized yet.

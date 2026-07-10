@@ -16,3 +16,6 @@ __pycache__/
 
 # Environment secrets — never commit the real .env
 .env
+
+# Node dependencies
+node_modules/

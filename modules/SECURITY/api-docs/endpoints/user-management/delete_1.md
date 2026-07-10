@@ -5,7 +5,7 @@
 
 Deletes a user if they have no child relationships (e.g., active refresh tokens)
 
-Operation ID: `delete`
+Operation ID: `delete_1`
 
 **Authentication**
 
