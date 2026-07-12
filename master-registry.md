@@ -5,8 +5,8 @@
 =====================================================
 
 - Project Name  : Enterprise Engine Platform
-- Version       : 2.7.7
-- Last Updated  : 2026-07-09
+- Version       : 2.9.1
+- Last Updated  : 2026-07-11
 - Maintained By : System Architect
 - Governance Level: LOCKED
 
@@ -364,10 +364,25 @@ LAYER-1 — Foundation Entities
 | FiscalYear           | (planned)               | CurrencyCalendar     | Planned             | Finance / All Operational              |
 | FiscalPeriod         | (planned)               | CurrencyCalendar     | Planned             | Finance / All Operational              |
 | NumberingPattern     | (planned)               | NumberingEngine      | Planned             | All Operational Modules                |
-| Attachment           | (planned)               | FileService          | Planned             | All Operational Modules                |
+| FileDocument         | (planned)               | FileService          | Planned             | NotificationService / AuditService / All 3.x |
+| FileCategory         | (planned)               | FileService          | Planned             | FileService only (per-module config)   |
+
+FileService P0 Note (added 2026-07-11):
+  P0 architecture convergence complete — module-registry-file.md +
+  business-policies-file.md produced. "Attachment" (generic placeholder)
+  formalized as FileDocument (table: FILE_DOCUMENT) + FileCategory
+  (table: FILE_CATEGORY). Storage: PostgreSQL BYTEA (not Oracle BLOB —
+  ARCH-REF-1.10 RESOLUTION-01). See Section 15 for readiness status.
 | AuditLog             | (planned)               | AuditService         | Planned             | All                                    |
 | Notification         | (planned)               | NotificationService  | Planned             | All                                    |
 | NotificationTemplate | (planned)               | NotificationService  | Planned             | All                                    |
+| NotificationChannelConfig | (planned)           | NotificationService  | Planned             | NotificationService only (admin config) |
+
+NotificationService P0 Note (added 2026-07-11):
+  P0 architecture convergence complete — module-registry-notif.md +
+  business-policies-notif.md produced. Entities above renamed at DDL
+  level to NOTIF_LOG (Notification) / NOTIF_TEMPLATE / NOTIF_CHANNEL_CONFIG.
+  See Section 15 for readiness status and open AQ-IDs.
 
 Organization Reference Table Note:
   ORG_REGION_TYPE is a Reference Table (not a Lookup Detail) — governed under DBS-ORG-001.
@@ -424,7 +439,9 @@ LAYER-3 — Operational Entities
 | MovementType        | Lookup         | Lookup Details  | Inventory           | <= 15      |
 | PriceListType       | Lookup         | Lookup Details  | PricingEngine       | <= 15      |
 | NotificationChannel | Lookup         | Lookup Details  | NotificationService | <= 15      |
+| NotificationStatus  | Lookup         | Lookup Details  | NotificationService | <= 15      |
 | FileType            | Lookup         | Lookup Details  | FileService         | <= 15      |
+| FileStatus          | Lookup         | Lookup Details  | FileService         | <= 15      |
 | ScopeLevel          | Lookup         | Lookup Details  | Security            | <= 15      |
 | LEGAL_ENTITY_TYPE   | Lookup         | Lookup Details  | Organization        | <= 15      |
 | BRANCH_TYPE         | Lookup         | Lookup Details  | Organization        | <= 15      |
@@ -451,6 +468,7 @@ Dependency Summary Per Module
 |----------------------|------------------------------------------------------------------------|
 | Organization         | None — root module                                                     |
 | Security             | Organization                                                           |
+|                      | (+ NotificationService, EVENT-BASED ‡, for Forgot Password — Conflict #20)|
 | MasterData           | Organization / Security                                                |
 | CurrencyCalendar     | Organization / Security                                                |
 | NumberingEngine      | Organization / Security / MasterData                                   |
@@ -469,6 +487,11 @@ Dependency Summary Per Module
 | Applications (5.x)   | All Layers complete                                                    |
 
 ★ Specifically called out — key consumers within the full Layer-1 dependency.
+‡ EVENT-BASED dependency (publish-only, no build-order/HARD-FK coupling —
+  H.2 pattern) — NOT added as a ● cell in the Full Dependency Matrix below,
+  since that matrix tracks build-order/HARD dependencies only. See
+  Conflict #20 (Section 13) for the full resolution of why this does not
+  create a circular HARD dependency with NotificationService→Security.
 
 -----------------------------------------------------
 Full Dependency Matrix
@@ -747,6 +770,51 @@ Rule: All deferred modules MUST be buildable on top without redesigning any core
 |         |            | decision changed). No other content touched: AQ-006, AQ-007,   |             |
 |         |            | Conflict #20, BLK-SEC-002 all unchanged.                        |             |
 
+| 2.8.0   | 2026-07-11 | P0 Phase 2 complete for NotificationService (1.8).             | Hesham /    |
+|         |            | Section 3: added NotificationChannelConfig entity row.          | P0 session  |
+|         |            | Section 6: added NotificationStatus lookup.                     |             |
+|         |            | Section 13: added Conflict #21 (channel list mismatch, CLOSED)  |             |
+|         |            | #22 (NotificationService→FileService HARD-FK softened to        |             |
+|         |            | DEFERRED via inline template storage + RXE migration path,      |             |
+|         |            | CLOSED), and #23 (channel-selection ownership assigned to       |             |
+|         |            | publishing business module, not Notification, CLOSED).          |             |
+|         |            | Section 14: AQ-008, AQ-009 resolved and moved to "Previously     |             |
+|         |            | resolved". AQ-010 (SMS provider), AQ-011 (WhatsApp provider),   |             |
+|         |            | AQ-012 (Push phase confirmation) added as OPEN, non-blocking.   |             |
+|         |            | Section 15: NotificationService NOT STARTED → PARTIALLY_READY ⚠️.|             |
+|         |            | Source: ARCH-REF-1.8-NOTIFICATION-SERVICE.md v1.1.0,             |             |
+|         |            | module-registry-notif.md, business-policies-notif.md.            |             |
+
+| 2.8.1   | 2026-07-11 | Push (Firebase) channel — AQ-012 resolved: no deferral for any | Hesham /    |
+|         |            | channel. Push moved from structure-ready/deferred to fully      | P0 session  |
+|         |            | implemented Phase 1, same as Email/SMS/WhatsApp/Internal.        |             |
+|         |            | Section 14: AQ-012 moved to "Previously resolved". Section 15:  |             |
+|         |            | NotificationService Open AQ-IDs reduced to AQ-010/011 only       |             |
+|         |            | (technical provider choices — not phase questions).              |             |
+|         |            | Source: ARCH-REF-1.8-NOTIFICATION-SERVICE.md v1.1.0 (final).    |             |
+
+| 2.9.0   | 2026-07-11 | P0 Phase 2 complete for FileService (1.10).                     | Hesham /    |
+|         |            | Section 3: "Attachment" placeholder formalized as FileDocument  | P0 session  |
+|         |            | (FILE_DOCUMENT) + FileCategory (FILE_CATEGORY).                 |             |
+|         |            | Section 6: added FileStatus lookup.                              |             |
+|         |            | Section 13: added Conflict #24 (Oracle BLOB/UCP/PDFBox →         |             |
+|         |            | PostgreSQL BYTEA/HikariCP, PDFBox deferred, CLOSED).             |             |
+|         |            | Section 15: FileService NOT STARTED → READY ✓, no open AQ-IDs.  |             |
+|         |            | Source: ARCH-REF-1.10-FILE-SERVICE.md v1.1.0,                   |             |
+|         |            | module-registry-file.md, business-policies-file.md.              |             |
+
+| 2.9.1   | 2026-07-11 | Conflict #20 (Security↔NotificationService circular    | Hesham /    |
+|         |            | dependency, BLK-SEC-002) RESOLVED and CLOSED — kept in the      | P0 session  |
+|         |            | log per LOCKED governance audit-trail requirement (not          |             |
+|         |            | deleted; conflicts are closed, never removed). Resolution:      |             |
+|         |            | Security→NotificationService (Forgot Password) reclassified     |             |
+|         |            | as Event-Based, not HARD-FK — same pattern as every other        |             |
+|         |            | module's relationship to Notification (H.2). Section 7:          |             |
+|         |            | added Event-Based (‡) footnote for Security row. Section 15:    |             |
+|         |            | Security extension scope PARTIALLY_READY ⚠️, no longer           |             |
+|         |            | BLOCKED. AQ-006/AQ-007 remain open (separate, non-blocking       |             |
+|         |            | issue — registry version-citation mismatch, untouched).          |             |
+
 - Major changes (new layer / new module) → increment major version (X.0.0)
 - Minor changes (new entity / new rule) → increment minor version (X.Y.0)
 - Patches (corrections / resolutions) → increment patch version (X.Y.Z)
@@ -774,17 +842,65 @@ Rule: All deferred modules MUST be buildable on top without redesigning any core
 | 14 | extraValue field not in original registry       | MasterData (Lookup feature)    | ACCEPTED — field kept AS-IS, registered in Section 5        | CLOSED    |
 | 15 | isSystemFl in registry but not in code          | MasterData (Lookup feature)    | NOT REQUIRED — no plan to implement, removed from spec      | CLOSED    |
 | 16 | extraValue max length inconsistency 255 vs 500  | MasterData (Lookup feature)    | PERMANENT EXCEPTION — kept AS-IS, no change required        | CLOSED    |
-| 20 | Circular dependency introduced by proposed       | Security / NotificationService | OPEN — registry-update-blocks-SEC.md requests               | OPEN      |
-|    | Security(1.2)→NotificationService(1.8) dependency|                                 | Security(1.2)→HARD→NotificationService(1.8) (for Forgot       |           |
-|    | (Forgot Password), which conflicts with the      |                                 | Password), but Section 7 already has NotificationService     |           |
-|    | existing NotificationService(1.8)→Security(1.2)  |                                 | (1.8)→Security(1.2) (L1-4 depends on L1-2). Adding the        |           |
-|    | dependency and L1-2/L1-4 build sequence          |                                 | reverse creates a two-way cycle. NOT added to Section 7       |           |
-|    |                                                  |                                 | matrix pending resolution — tracked as BLK-SEC-002 (see       |           |
-|    |                                                  |                                 | Section 15 note). Also flagged: Organization's XM Inbound     |           |
-|    |                                                  |                                 | Stub list does not list Security as an anticipated consumer   |           |
-|    |                                                  |                                 | of Branch, despite SEC_USER_PROFILE/SEC_ROLE_BRANCH (§8.1–8.2 |           |
-|    |                                                  |                                 | of registry-security.md) referencing ORG_BRANCH as a HARD-FK. |           |
-|    |                                                  |                                 | Source: registry-update-blocks-SEC.md.                        |           |
+| 20 | Circular dependency introduced by proposed       | Security / NotificationService | RESOLVED — Security(1.2)→NotificationService(1.8) for        | CLOSED    |
+|    | Security(1.2)→NotificationService(1.8) dependency|                                 | Forgot-Password is reclassified as Event-Based (publish-only  |           |
+|    | (Forgot Password), which conflicts with the      |                                 | via RabbitMQ/erp.notification.exchange), not HARD-FK. This    |           |
+|    | existing NotificationService(1.8)→Security(1.2)  |                                 | is the SAME pattern every other module already uses to talk   |           |
+|    | dependency and L1-2/L1-4 build sequence          |                                 | to Notification (platform-standards.md H.2: "Any module →     |           |
+|    |                                                  |                                 | Audit/Notification → Event-Based always"; see also            |           |
+|    |                                                  |                                 | XM-INBOUND-STUB-NOTIF-1, module-registry-notif.md, which       |           |
+|    |                                                  |                                 | already documents all 3.x modules as event producers).         |           |
+|    |                                                  |                                 | Two dependencies in opposite directions with DIFFERENT types   |           |
+|    |                                                  |                                 | (NotificationService→Security = HARD-FK on USERS, synchronous, |           |
+|    |                                                  |                                 | build-order L1-2 before L1-4; Security→NotificationService =   |           |
+|    |                                                  |                                 | Event-Based, fire-and-forget, no build-order or data coupling) |           |
+|    |                                                  |                                 | is NOT a circular HARD-FK dependency — Event-Based pattern     |           |
+|    |                                                  |                                 | exists specifically to decouple this kind of relationship      |           |
+|    |                                                  |                                 | (H.1: "Effect: full decoupling — each side is independent").   |           |
+|    |                                                  |                                 | BLK-SEC-002 CLOSED — Security's extension scope (Forgot         |           |
+|    |                                                  |                                 | Password) is no longer blocked pending this resolution.        |           |
+|    |                                                  |                                 | Section 7 matrix updated with an Event-Based footnote (not a   |           |
+|    |                                                  |                                 | new ● cell — Event-Based deps are not build-order HARD deps).  |           |
+|    |                                                  |                                 | SEPARATE, still-open sub-item (not resolved by this entry):    |           |
+|    |                                                  |                                 | Organization's XM Inbound Stub list still does not list        |           |
+|    |                                                  |                                 | Security as a consumer of Branch (SEC_USER_PROFILE/            |           |
+|    |                                                  |                                 | SEC_ROLE_BRANCH HARD-FK on ORG_BRANCH) — tracked separately,    |           |
+|    |                                                  |                                 | to be added to registry-exec-ORG.md's XM-INBOUND-STUB list on  |           |
+|    |                                                  |                                 | Organization's next registry touch, not blocking. Decided by:  |           |
+|    |                                                  |                                 | Hesham, 2026-07-11.                                             |           |
+| 21 | Notification channel list mismatch — master-     | NotificationService             | RESOLVED — union of both lists adopted: Email + SMS +        | CLOSED    |
+|    | registry §8 ("InApp/Email/SMS/WhatsApp") vs      |                                  | WhatsApp + Push + Internal (5 channels), single unified      |           |
+|    | ARCH-REF-1.8-NOTIFICATION-SERVICE.md §2          |                                  | table (NOTIF_LOG.notification_type / NOTIF_CHANNEL_CONFIG    |           |
+|    | ("Email/SMS/Firebase Push/Internal")             |                                  | .channel_type). Phase 1: all 5 channels fully implemented —  |           |
+|    |                                                  |                                  | no deferral for any channel (final decision 2026-07-11).     |           |
+|    |                                                  |                                  | Source: ARCH-REF-1.8 v1.1.0 SECTION 0 RESOLUTION-01.          |           |
+|    |                                                  |                                  | Decided by: Hesham, 2026-07-11.                                |           |
+| 22 | NotificationService(1.8) HARD-FK on File Service | NotificationService / FileService| RESOLVED (architectural workaround) — File Service is         | CLOSED    |
+|    | (1.10) templates (AD-NOTIF-05 "MANDATORY") while |                                  | NOT STARTED. NOTIF_TEMPLATE stores template body inline       |           |
+|    | FileService shows NOT STARTED in Section 15      |                                  | (template_body_ar/en) for Phase 1; file_id kept NULLABLE      |           |
+|    |                                                  |                                  | for migration once FileService is governed. Migration is      |           |
+|    |                                                  |                                  | governed by the standard XM Resolution Event mechanism         |           |
+|    |                                                  |                                  | (RXE-NOTIF-[SEQ], per shared-artifact-contracts.md CONTRACT-8) |           |
+|    |                                                  |                                  | — not an ad-hoc protocol. XM-NOTIF-[TBD]→FILE_DOCUMENT         |           |
+|    |                                                  |                                  | downgraded from BLOCKED to DEFERRED. Source: ARCH-REF-1.8      |           |
+|    |                                                  |                                  | v1.1.0 SECTION 0 RESOLUTION-02 + AD-NOTIF-11. Decided by:      |           |
+|    |                                                  |                                  | Hesham, 2026-07-11.                                            |           |
+| 23 | Which module decides notification channel(s)     | NotificationService              | RESOLVED — the publishing business module (Procurement/       | CLOSED    |
+|    | per event? (implicit gap — not previously logged)|                                  | Sales/Inventory/Finance/...) decides via channelHint (single/  |           |
+|    |                                                  |                                  | list/"ALL") on every published event. Notification Service     |           |
+|    |                                                  |                                  | contains no logic mapping event type or module_code to a       |           |
+|    |                                                  |                                  | channel — enforces platform-standards.md §A.3 module           |           |
+|    |                                                  |                                  | ownership boundary. Source: ARCH-REF-1.8 v1.1.0 AD-NOTIF-10.   |           |
+|    |                                                  |                                  | Decided by: Hesham, 2026-07-11.                                |           |
+| 24 | ARCH-REF-1.10-FILE-SERVICE.md prescribes Oracle  | FileService                      | RESOLVED — same PostgreSQL adaptation pattern as               | CLOSED    |
+|    | BLOB + Oracle UCP (AD-FILE-01/04), and includes  |                                   | Notification (AD-NOTIF-07 precedent): BLOB → BYTEA (5MB        |           |
+|    | PDFBox with no defined use case (AD-FILE-08),    |                                   | ceiling makes Large Objects unnecessary), Oracle UCP →         |           |
+|    | while DB_TARGET = POSTGRESQL_16 and PDFBox has   |                                   | HikariCP. PDFBox NOT added Phase 1 — no use case exists        |           |
+|    | no confirmed requirement anywhere in the platform|                                   | even in the source reference (fails platform-standards §M      |           |
+|    |                                                  |                                   | Day-1 test), tracked as an explicit reopening condition        |           |
+|    |                                                  |                                   | rather than silently dropped. Source: ARCH-REF-1.10 v1.1.0     |           |
+|    |                                                  |                                   | SECTION 0 RESOLUTION-01/02/03. Decided by: Hesham, 2026-07-11. |           |
+
 
 Rules:
 - All conflicts MUST be logged
@@ -809,6 +925,13 @@ Rules:
 |        |                              | between them. Were those two versions lost in upload, or is the         |                  |            |          |
 |        |                              | v2.9.0 citation (also underlying AQ-006) wrong from the start? Linked   |                  |            |          |
 |        |                              | to AQ-006 — do not close AQ-006 until AQ-007 is resolved.               |                  |            |          |
+| AQ-010 | SMS provider selection      | Which SMS provider (Twilio / Unifonic / local provider)? Not            | ARCH-REF-1.8 P0  | 2026-07-11 | OPEN     |
+|        | (NotificationService)       | architecture-blocking — provider lives in NOTIF_CHANNEL_CONFIG          | session          |            |          |
+|        |                              | .config_json, structure is provider-agnostic. Needed before P3          |                  |            |          |
+|        |                              | (Execution Plan) writes the actual B2 API integration.                  |                  |            |          |
+| AQ-011 | WhatsApp Business API       | Meta Cloud API directly, or via a BSP (Twilio / 360dialog)? Same        | ARCH-REF-1.8 P0  | 2026-07-11 | OPEN     |
+|        | provider selection          | non-blocking status as AQ-010 — needed before P3 writes                 | session          |            |          |
+|        | (NotificationService)       | WhatsAppChannelService integration.                                     |                  |            |          |
 
 Note: AQ-003 is non-blocking. Resolves automatically when the first consuming
 module (TBD) runs its own MODE 1.5 session and declares its XM dependency on Region.
@@ -823,6 +946,15 @@ Previously resolved questions:
 |--------|------------------------|-------------------------------------------------------------|------------|
 | AQ-001 | Naming Standard        | RESOLVED — lookupKey stays AS-IS permanently. No rename.    | 2026-05-24 |
 | AQ-002 | extraValue Max Length  | RESOLVED — kept AS-IS permanently. No change required.      | 2026-05-24 |
+| AQ-008 | SMS Phase-1 timing     | RESOLVED — SMS fully implemented in Phase 1 (not deferred). | 2026-07-11 |
+|        | (NotificationService)  | See Conflict #21. Provider selection itself remains open    |            |
+|        |                        | as AQ-010 (non-blocking).                                    |            |
+| AQ-009 | Notification channel   | RESOLVED — union of master-registry §8 and ARCH-REF-1.8      | 2026-07-11 |
+|        | list mismatch          | lists adopted: Email/SMS/WhatsApp/Push/Internal (5 channels). |            |
+|        | (NotificationService)  | See Conflict #21.                                             |            |
+| AQ-012 | Push (Firebase) channel| RESOLVED — no deferral for any channel. Push is fully         | 2026-07-11 |
+|        | phase confirmation     | implemented in Phase 1, same as Email/SMS/WhatsApp/Internal.  |            |
+|        | (NotificationService)  | All 5 channels ship enabled (is_enabled_fl = 1).               |            |
 
 New questions raised during analysis must follow this format before being added:
 
@@ -843,13 +975,13 @@ Rule: This table is updated by P0 REGISTRY UPDATE BLOCKS only.
 | Module              | Layer | Step  | P0 Date    | Readiness          | module-registry files                                    | Open AQ-IDs        |
 |---------------------|-------|-------|------------|--------------------|----------------------------------------------------------|--------------------|
 | Organization        | L1    | L1-1  | 2026-06-16 | READY ✓            | registry-srs-ORG.md / registry-db-ORG.md / registry-exec-ORG.md | AQ-003 (DEFERRED) |
-| Security            | L1    | L1-2  | EXCEPTION  | EXCEPTION ⚠️ (core) / PARTIALLY_READY ⚠️ (extension scope — BLOCKED pending BLK-SEC-002) | registry-security.md v2.4.1 | AQ-006, AQ-007 (OPEN) / Conflict #20 (OPEN) |
+| Security            | L1    | L1-2  | EXCEPTION  | EXCEPTION ⚠️ (core) / PARTIALLY_READY ⚠️ (extension scope — unblocked, Conflict #20 CLOSED) | registry-security.md v2.4.1 | AQ-006, AQ-007 (OPEN, non-blocking) |
 | MasterData          | L1    | L1-3  | EXCEPTION  | PARTIAL EXCEP ⚠️   | — (Lookup AS-IS per Section 4)                           | —                  |
 | CurrencyCalendar    | L1    | L1-3  | —          | NOT STARTED        | —                                                        | —                  |
 | NumberingEngine     | L1    | L1-4  | —          | NOT STARTED        | —                                                        | —                  |
 | IntegrationService  | L1    | L1-3  | —          | NOT STARTED        | —                                                        | —                  |
-| FileService         | L1    | L1-3  | —          | NOT STARTED        | —                                                        | —                  |
-| NotificationService | L1    | L1-4  | —          | NOT STARTED        | —                                                        | —                  |
+| FileService         | L1    | L1-3  | 2026-07-11 | READY ✓            | module-registry-file.md / business-policies-file.md / ARCH-REF-1.10-FILE-SERVICE.md v1.1.0 | — |
+| NotificationService | L1    | L1-4  | 2026-07-11 | PARTIALLY_READY ⚠️ | module-registry-notif.md / business-policies-notif.md / ARCH-REF-1.8-NOTIFICATION-SERVICE.md v1.1.0 | AQ-010, AQ-011 (OPEN, non-blocking) |
 | AuditService        | L1    | L1-4  | —          | NOT STARTED        | —                                                        | —                  |
 | PricingEngine       | L2    | L2-1  | —          | NOT STARTED        | —                                                        | —                  |
 | TaxEngine           | L2    | L2-2  | —          | NOT STARTED        | —                                                        | —                  |
@@ -872,18 +1004,48 @@ Note on AQ-003 and Organization READY status:
   AQ-003 is DEFERRED and non-blocking. Organization P1 may proceed.
   AQ-003 resolves when the first Region-consuming module runs MODE 1.5.
 
-Note on Security's split readiness (added 2026-07-09, registry-update-blocks-SEC.md):
+Note on FileService readiness (added 2026-07-11):
+  READY ✓ — P0 architecture convergence complete, no open AQ-IDs.
+  ARCH-REF-1.10's Oracle-specific decisions (BLOB, UCP) adapted to
+  PostgreSQL (BYTEA, HikariCP — Conflict #24); PDFBox deferred with an
+  explicit reopening condition rather than silently dropped. FileService
+  has no HARD dependency on any ungoverned module — Organization/
+  Security are both usable now (Organization READY, Security EXCEPTION).
+  This does not automatically close NotificationService's XM-NOTIF-[TBD]
+  →FILE_DOCUMENT (Conflict #22) — the RXE-NOTIF migration trigger fires
+  at FileService's MODE 1.5 gate (DBS-ID confirmed), not at this P0
+  completion. P1/P2 must still run for FileService before that RXE fires.
+
+Note on NotificationService readiness (added 2026-07-11):
+  PARTIALLY_READY ⚠️ — P0 architecture convergence complete
+  (module-registry-notif.md + business-policies-notif.md produced).
+  Not BLOCKED: the original HARD-FK on FileService (1.10) for templates
+  was downgraded to DEFERRED via an architectural workaround (inline
+  template storage — Conflict #22), with a standard RXE-based migration
+  path (RXE-NOTIF-[SEQ], CONTRACT-8) documented for when FileService
+  becomes governed. Open AQ-010/011/012 are non-blocking technical/
+  confirmation items (SMS & WhatsApp provider selection; Push channel
+  phase confirmation) — P1 may begin for this module.
+  Five notification channels confirmed: Email/SMS/WhatsApp/Push/Internal
+  ALL fully implemented Phase 1 (2026-07-11 — "no deferral for any
+  channel"). Remaining open items (AQ-010/011) are technical provider
+  choices for SMS/WhatsApp, not phase/deferral questions — they do not
+  affect whether a channel sends. Channel selection per event is owned
+  exclusively by the publishing business module via channelHint, never
+  inferred by Notification itself (Conflict #23).
+Note on Security's split readiness (added 2026-07-09, updated 2026-07-11):
   Security's CORE (USERS/ROLES/PERMISSIONS/SEC_PAGES/REFRESH_TOKENS) remains
   EXCEPTION ⚠️ — used AS-IS per Section 4, unaffected by this note.
   Security's EXTENSION scope (DataScope: SEC_USER_PROFILE/SEC_ROLE_BRANCH;
   Forgot Password; Sign Up — see registry-security.md §8) is new development
-  under an EXCEPTION-status module and is tracked separately as
-  PARTIALLY_READY ⚠️, BLOCKED pending BLK-SEC-002.
-  BLK-SEC-002 (not yet formally registered as its own section — see
-  Conflict #20, Section 13): the Forgot-Password sub-feature's dependency on
-  NotificationService(1.8) would create a two-way cycle with the existing
-  NotificationService(1.8)→Security(1.2) dependency in Section 7. This must
-  be resolved (e.g., re-sequence, decouple via event/async pattern, or defer
-  Forgot Password until after NotificationService) before Section 7's matrix
-  is updated to reflect it, and before Security's extension scope can move
-  past PARTIALLY_READY.
+  under an EXCEPTION-status module, tracked as PARTIALLY_READY ⚠️.
+  BLK-SEC-002 / Conflict #20 — RESOLVED AND CLOSED 2026-07-11 (Section 13):
+  the apparent Security(1.2)↔NotificationService(1.8) circular dependency
+  is resolved because the two directions are different dependency types,
+  not a true cycle — NotificationService→Security is HARD-FK (USERS data,
+  build-order), while Security→NotificationService (Forgot Password) is
+  Event-Based (publish-only via RabbitMQ, no build-order coupling), the
+  same pattern every other module already uses to reach Notification.
+  Security's extension scope is no longer blocked on this item. Remaining
+  open items for the extension scope are AQ-006/AQ-007 only (registry
+  version-citation mismatch — non-blocking, does not affect this scope).

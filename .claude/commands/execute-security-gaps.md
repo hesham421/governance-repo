@@ -125,20 +125,22 @@ required/optional, validation, enums, error codes, permissions):
       what execution-plan-SEC-gaps.md implies
 ```
 
-Note: API-SEC-032..043 are NEW endpoints introduced by this very plan — if
-`api-docs` hasn't been regenerated since Phase 3 (SVC-API) landed, it will
-be missing them. In that case go straight to backend source (this is an
-expected/documented gap, not a shortcut) and log it.
+Note: `api-docs` was regenerated 2026-07-10 (after Phase 3 / SVC-API landed
+2026-07-09) and includes API-SEC-032..043 — see
+`endpoints/security-datascope-role-branches/` and
+`endpoints/security-datascope-user-profiles/`. Treat `api-docs` as the
+complete, trusted contract source for the SECURITY module; it is no longer
+expected to be missing these endpoints. The MISSING_IN_DOCS fallback below
+still applies to genuine per-detail gaps (error responses, enum values,
+etc.), not to whole endpoints.
 
+- Resolve from api-docs first — implement the task against these values
+  directly. api-docs is trusted as-is, no comparison against
+  execution-plan-SEC-gaps.md and no conflict check here.
 - If api-docs is missing/stale for an endpoint → resolve from backend source,
   record: `// TODO: api_doc_gap MISSING_IN_DOCS — [detail] not in api-docs, resolved from backend source: [path]`
   and add `{ "type": "MISSING_IN_DOCS", "phase", "endpoint", "detail", "resolution": "resolved via backend source: <path>" }` to `api_doc_gaps[]`.
-- If execution-plan-SEC-gaps.md's description of a contract conflicts with
-  what api-docs/backend source actually shows → do NOT silently pick a side.
-  Implement against the real backend provisionally, record:
-  `// TODO: api_doc_gap CONFLICT_PENDING_DECISION — plan said "[X]", real contract says "[Y]" — implemented per real contract, pending your decision`
-  and surface it prominently in the Session Completion Report (STEP 2).
-- Continue execution — do not stop the session for either case.
+- Continue execution — do not stop the session for this.
 
 ---
 
@@ -152,9 +154,7 @@ Phase           : [PHASE]
 Handoff written : HANDOFF-PHASE-[N]-[NAME].md
 Blocked         : [OQ-IDs / none]
 XM Deferred     : [XM-IDs / none]
-API Doc Gaps    : [count — MISSING_IN_DOCS: N, CONFLICT_PENDING_DECISION: N / none]
-  [If CONFLICT_PENDING_DECISION > 0:]
-  ⚠ [N] endpoint(s) need your decision — see api_doc_gaps[] in execution-state.json
+API Doc Gaps    : [count of MISSING_IN_DOCS entries / none]
 ──────────────────────────────────────────────────────
 Phase status  : ✓ COMPLETE
 Next phase    : [PHASE-NAME] — awaiting your instruction
@@ -209,8 +209,9 @@ ALIGN     → ALIGN
 - NEVER advance to next phase without explicit instruction from user
 - ALWAYS update `execution-state.json` after every phase
 - NEVER start F1/F2/F3 unless DOC and INT-C are both COMPLETE (STEP 0.4)
-- NEVER resolve a plan-vs-real-contract conflict unilaterally — implement
-  provisionally against the real contract, log it, surface it for a decision
+- NEVER implement a frontend task that calls a backend endpoint without
+  first checking api-docs (STEP 1.5) — treat it as trusted, no cross-check
+  against execution-plan-SEC-gaps.md needed
 - NEVER go directly to backend source for a contract unless api-docs is
   confirmed missing/stale for that endpoint — and always log that fallback
 - Conflict #19 sign-off already confirmed (see Phase 1 handoff) — do not

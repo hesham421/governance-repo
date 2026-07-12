@@ -8,6 +8,24 @@
         1
       ],
       "current_version": 1
+    },
+    "NOTIFICATION": {
+      "code": "NOTIFICATION",
+      "description": "Notification Service",
+      "registered_at": "2026-07-12T22:41:10.200203",
+      "versions": [
+        1
+      ],
+      "current_version": 1
+    },
+    "FILESVC": {
+      "code": "FILESVC",
+      "description": "File Service",
+      "registered_at": "2026-07-12T22:41:12.242306",
+      "versions": [
+        1
+      ],
+      "current_version": 1
     }
   }
 }

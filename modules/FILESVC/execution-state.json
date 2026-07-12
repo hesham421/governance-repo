@@ -1,0 +1,51 @@
+{
+  "module": "FILESVC",
+  "generated_at": "2026-07-12",
+  "current_phase": "CORE",
+  "current_sub": "CORE",
+  "api_docs_path": "governance-repo/modules/FILESVC/api-docs/",
+  "phases": [
+    { "id": "CORE", "status": "PENDING", "subs": [ { "id": "CORE", "status": "PENDING" } ] },
+    { "id": "DATAOM", "status": "PENDING", "subs": [ { "id": "DATAOM", "status": "PENDING" } ] },
+    { "id": "SVCAPI", "status": "PENDING", "subs": [ { "id": "SVCAPI", "status": "PENDING" } ] },
+    { "id": "DOC", "status": "PENDING", "subs": [ { "id": "DOC", "status": "PENDING" } ] },
+    { "id": "INTC", "status": "PENDING", "subs": [ { "id": "INTC", "status": "PENDING" } ] },
+    { "id": "INTR", "status": "PENDING", "subs": [ { "id": "INTR", "status": "PENDING" } ] },
+    { "id": "F1", "status": "PENDING", "subs": [ { "id": "F1", "status": "PENDING" } ] },
+    { "id": "F2", "status": "PENDING", "subs": [ { "id": "F2", "status": "PENDING" } ] },
+    { "id": "F3", "status": "PENDING", "subs": [ { "id": "F3", "status": "PENDING" } ] },
+    { "id": "SEC", "status": "PENDING", "subs": [ { "id": "SEC", "status": "PENDING" } ] },
+    { "id": "ALIGN", "status": "PENDING", "subs": [ { "id": "ALIGN", "status": "PENDING" } ] }
+  ],
+  "test_phases": [
+    {
+      "id": "JUNIT",
+      "status": "PENDING",
+      "gated_by_phases": ["CORE", "DATAOM", "SVCAPI", "DOC", "INTC", "INTR"],
+      "header_file": "packages/test/JUNIT/JUNIT-HEADER.md",
+      "mandatory_file": null,
+      "subs": [
+        { "id": "RULE-SCENARIOS", "status": "PENDING" },
+        { "id": "API-SCENARIOS", "status": "PENDING" }
+      ]
+    },
+    {
+      "id": "PLAYWRIGHT",
+      "status": "PENDING",
+      "gated_by_phases": ["F1", "F2", "F3"],
+      "header_file": null,
+      "mandatory_file": null,
+      "subs": [
+        { "id": "PLAYWRIGHT", "status": "PENDING" }
+      ]
+    }
+  ],
+  "blocked": [],
+  "deferred_xm": [],
+  "api_doc_gaps": [],
+  "notes": {
+    "TEST_phase_excluded": "packages/execution/TEST/TEST.md is a TC Coverage Matrix Summary (execution-plan.md SECTION D) — informational only, not a code-generating phase. Excluded from phases[], matching ORG's precedent of excluding its equivalent SECTION-D from its own Phase Map.",
+    "xm_inbound": "This module is the TARGET of XM-NOTIF-001 (NotificationTemplate.fileFk → FileService.FileDocument), not a consumer — no outbound XM-ID of its own.",
+    "playwright_no_sub_split": "FILESVC test-plan.md had only 6 PLAYWRIGHT TCs (below the >8 SUB-split threshold), so Agent 3 wrote a single packages/test/PLAYWRIGHT/PLAYWRIGHT.md with no HEADER or SUB breakdown — unlike NOTIFICATION which has UI-FLOWS/INT-FLOW subs."
+  }
+}

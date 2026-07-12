@@ -13,7 +13,7 @@ import json
 # REPO — Single root for everything
 # ─────────────────────────────────────────────
 
-REPO_BASE_PATH = Path(r"C:\sources\nots\s\System-main-main-main\System-main-main\governance-repo")
+REPO_BASE_PATH = Path("/Users/ezzat/my project/governance-repo")
 
 # ─────────────────────────────────────────────
 # MODULES — All known module codes
@@ -193,7 +193,9 @@ def get_module_path(mod: str) -> Path:
     """Return the root path for a module."""
     mod = mod.upper()
     if mod not in KNOWN_MODULES:
-        raise ValueError(f"Unknown module: {mod}. Add it to KNOWN_MODULES in config.py")
+        registry = load_modules_registry()
+        if mod not in registry.get("modules", {}):
+            raise ValueError(f"Unknown module: {mod}. Add it to KNOWN_MODULES in config.py")
     return REPO_BASE_PATH / "modules" / mod
 
 

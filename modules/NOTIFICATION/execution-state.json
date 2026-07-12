@@ -1,0 +1,53 @@
+{
+  "module": "NOTIFICATION",
+  "generated_at": "2026-07-12",
+  "current_phase": "CORE",
+  "current_sub": "CORE",
+  "api_docs_path": "governance-repo/modules/NOTIFICATION/api-docs/",
+  "phases": [
+    { "id": "CORE", "status": "PENDING", "subs": [ { "id": "CORE", "status": "PENDING" } ] },
+    { "id": "DATAOM", "status": "PENDING", "subs": [ { "id": "DATAOM", "status": "PENDING" } ] },
+    { "id": "SVCAPI", "status": "PENDING", "subs": [ { "id": "SVCAPI", "status": "PENDING" } ] },
+    { "id": "DOC", "status": "PENDING", "subs": [ { "id": "DOC", "status": "PENDING" } ] },
+    { "id": "INTC", "status": "PENDING", "subs": [ { "id": "INTC", "status": "PENDING" } ] },
+    { "id": "INTR", "status": "PENDING", "subs": [ { "id": "INTR", "status": "PENDING" } ] },
+    { "id": "F1", "status": "PENDING", "subs": [ { "id": "F1", "status": "PENDING" } ] },
+    { "id": "F2", "status": "PENDING", "subs": [ { "id": "F2", "status": "PENDING" } ] },
+    { "id": "F3", "status": "PENDING", "subs": [ { "id": "F3", "status": "PENDING" } ] },
+    { "id": "SEC", "status": "PENDING", "subs": [ { "id": "SEC", "status": "PENDING" } ] },
+    { "id": "ALIGN", "status": "PENDING", "subs": [ { "id": "ALIGN", "status": "PENDING" } ] }
+  ],
+  "test_phases": [
+    {
+      "id": "JUNIT",
+      "status": "PENDING",
+      "gated_by_phases": ["CORE", "DATAOM", "SVCAPI", "DOC", "INTC", "INTR"],
+      "header_file": "packages/test/JUNIT/JUNIT-HEADER.md",
+      "mandatory_file": null,
+      "subs": [
+        { "id": "RULE-SCENARIOS", "status": "PENDING" },
+        { "id": "API-SCENARIOS", "status": "PENDING" }
+      ]
+    },
+    {
+      "id": "PLAYWRIGHT",
+      "status": "PENDING",
+      "gated_by_phases": ["F1", "F2", "F3"],
+      "header_file": "packages/test/PLAYWRIGHT/PLAYWRIGHT-HEADER.md",
+      "mandatory_file": null,
+      "subs": [
+        { "id": "UI-FLOWS", "status": "PENDING" },
+        { "id": "INT-FLOW", "status": "PENDING" }
+      ]
+    }
+  ],
+  "blocked": [],
+  "deferred_xm": [
+    { "id": "XM-NOTIF-001", "target_module": "FileService (FILESVC)", "status": "DEFERRED", "unblock_condition": "RXE-NOTIF-[SEQ] per SHARED-ARTIFACT-CONTRACTS.md CONTRACT-8 — fires once File Service migration path is ready" }
+  ],
+  "api_doc_gaps": [],
+  "notes": {
+    "TEST_phase_excluded": "packages/execution/TEST/TEST.md is a TC Coverage Matrix Summary (execution-plan.md SECTION D) — informational only, not a code-generating phase. Excluded from phases[], matching ORG's precedent of excluding its equivalent SECTION-D from its own Phase Map.",
+    "unstable_apis": "API-NOTIF-004/005 are UNSTABLE pending DRV-NOTIF-003 (missing read/unread DB column) — implement per execution-plan.md's documented Escalation Note when reached in SVCAPI; do not silently omit."
+  }
+}
