@@ -1,13 +1,13 @@
 {
   "module": "NOTIFICATION",
   "generated_at": "2026-07-12",
-  "current_phase": "CORE",
-  "current_sub": "CORE",
+  "current_phase": "DOC",
+  "current_sub": "DOC",
   "api_docs_path": "governance-repo/modules/NOTIFICATION/api-docs/",
   "phases": [
-    { "id": "CORE", "status": "PENDING", "subs": [ { "id": "CORE", "status": "PENDING" } ] },
-    { "id": "DATAOM", "status": "PENDING", "subs": [ { "id": "DATAOM", "status": "PENDING" } ] },
-    { "id": "SVCAPI", "status": "PENDING", "subs": [ { "id": "SVCAPI", "status": "PENDING" } ] },
+    { "id": "CORE", "status": "COMPLETE", "subs": [ { "id": "CORE", "status": "COMPLETE" } ] },
+    { "id": "DATAOM", "status": "COMPLETE", "subs": [ { "id": "DATAOM", "status": "COMPLETE" } ] },
+    { "id": "SVCAPI", "status": "COMPLETE", "subs": [ { "id": "SVCAPI", "status": "COMPLETE" } ] },
     { "id": "DOC", "status": "PENDING", "subs": [ { "id": "DOC", "status": "PENDING" } ] },
     { "id": "INTC", "status": "PENDING", "subs": [ { "id": "INTC", "status": "PENDING" } ] },
     { "id": "INTR", "status": "PENDING", "subs": [ { "id": "INTR", "status": "PENDING" } ] },
@@ -41,13 +41,29 @@
       ]
     }
   ],
-  "blocked": [],
+  "blocked": [
+    { "id": "API-NOTIF-004", "reason": "DRV-NOTIF-003 — no read/unread column on NOTIF_LOG; contract shell implemented (GET /unread), service throws NOTIF_READ_TRACKING_UNAVAILABLE (422)", "unblock_condition": "SRS/DB amendment adding a read/unread column to NOTIF_LOG" },
+    { "id": "API-NOTIF-005", "reason": "DRV-NOTIF-003 — same as API-NOTIF-004; contract shell implemented (PUT /{id}/read), service throws NOTIF_READ_TRACKING_UNAVAILABLE (422)", "unblock_condition": "SRS/DB amendment adding a read/unread column to NOTIF_LOG" },
+    { "id": "API-NOTIF-002-scheduling", "reason": "DRV-NOTIF-004 (new) — no column exists to durably persist scheduledAt on NOTIF_LOG; /schedule currently dispatches immediately like /send", "unblock_condition": "SRS/DB amendment adding a scheduled-dispatch timestamp column to NOTIF_LOG" }
+  ],
   "deferred_xm": [
     { "id": "XM-NOTIF-001", "target_module": "FileService (FILESVC)", "status": "DEFERRED", "unblock_condition": "RXE-NOTIF-[SEQ] per SHARED-ARTIFACT-CONTRACTS.md CONTRACT-8 — fires once File Service migration path is ready" }
   ],
   "api_doc_gaps": [],
   "notes": {
     "TEST_phase_excluded": "packages/execution/TEST/TEST.md is a TC Coverage Matrix Summary (execution-plan.md SECTION D) — informational only, not a code-generating phase. Excluded from phases[], matching ORG's precedent of excluding its equivalent SECTION-D from its own Phase Map.",
-    "unstable_apis": "API-NOTIF-004/005 are UNSTABLE pending DRV-NOTIF-003 (missing read/unread DB column) — implement per execution-plan.md's documented Escalation Note when reached in SVCAPI; do not silently omit."
+    "unstable_apis": "API-NOTIF-004/005 are UNSTABLE pending DRV-NOTIF-003 (missing read/unread DB column) — implement per execution-plan.md's documented Escalation Note when reached in SVCAPI; do not silently omit.",
+    "svcapi_layer1_progress": "2026-07-13 — SVCAPI is XL, chunked into 4 layers (per execute-notification.md STEP 0 assessment): Layer 1 (shared NotificationEventProcessor + API-NOTIF-001 Send + API-NOTIF-002 Schedule) is DONE and compiles clean (full reactor BUILD SUCCESS). current_phase/current_sub deliberately left at SVCAPI/PENDING — Layers 2 (History/Unread/Read), 3 (Template CRUD), 4 (Channel Config) are still PENDING within the same sub. Do not treat SVCAPI as stale/skipped; it's mid-flight across sessions, same convention as PLAN-SEC-002's per-phase handoffs.",
+    "drv_notif_002_application": "Layer 1's NotificationEventProcessor.resolveTemplate() implements RULE-NOTIF-006's 'missing template falls back rather than fails' requirement by probing a SYSTEM_DEFAULT templateCode (not seeded anywhere) and, failing that, using a fully in-memory generic NotificationTemplate (not persisted). No governed artifact defines what the actual default template should contain — this is the concrete resolution of DRV-NOTIF-002 for this session; revisit if a real default template is ever seeded.",
+    "drv_notif_004_schedule_gap": "NEW — API-NOTIF-002's NotificationScheduleRequest.scheduledAt has no backing column in DBS-NOTIF-001 (NOTIF_LOG's DBF-0001..0016 catalog has none). Per Section 2A.3 (no column invented), Layer 1 implements /schedule as an immediate dispatch identical to /send rather than a fabricated in-memory-only timer that would lose scheduled sends on restart. Same GOVERNANCE-NOTE-BLOCKED posture as DRV-NOTIF-003 for API-NOTIF-004/005. Needs an SRS/DB amendment (a scheduled-dispatch timestamp column) before real deferred scheduling can be built.",
+    "svcapi_request_dto_gap": "SVCAPI.md's literal NotificationSendRequest field list (recipientId, channelHint, templateCode, contextData, priority) omits moduleCode despite NOTIF_LOG.MODULE_CODE being NOT NULL (DBF-0010) with no other source for it in this codebase (no service-to-service caller-identity credential exists). Layer 1 added moduleCode (required) plus referenceId/referenceType (optional, nullable columns) to NotificationSendRequest/NotificationScheduleRequest to make the contract satisfiable. priority is accepted+validated (HIGH/MEDIUM/LOW) but not persisted anywhere — NOTIF_LOG has no matching column either.",
+    "svcapi_layer2_progress": "2026-07-13 — Layer 2 (History/Unread/Read, API-NOTIF-003/004/005) is DONE and compiles clean (full reactor BUILD SUCCESS, including erp-security which gained new SecurityPermissions.NOTIFICATION_* constants — purely additive, matching already-seeded dbs-notif-001.md permission names). current_phase/current_sub still deliberately at SVCAPI/PENDING — Layers 3 (Template CRUD) and 4 (Channel Config) remain.",
+    "svcapi_no_current_user_id_accessor": "Real gap found: erp-common-utils' SecurityContextHelper only exposes the authenticated username (String) — there is no numeric-user-id accessor anywhere (the JWT principal is a plain org.springframework.security.core.userdetails.User, not a custom principal carrying USERS_PK). API-NOTIF-003's 'recipientId defaults to caller's own id' therefore required a NEW cross-module client (SecurityUserClient) that resolves username -> id via POST /api/users/search (username EQUALS filter) — erp-security has no dedicated '/me' or by-username lookup endpoint either. Recommend a common-utils/erp-security fix (embed userId in the JWT principal) so future modules don't need this same per-module workaround.",
+    "svcapi_history_recipient_admin_gap": "API-NOTIF-003's SVCAPI.md text says recipientId query should be admin-gated ('Admin may query others per permission') but dbs-notif-001.md only seeds PERM_NOTIFICATION_INBOX_VIEW/CREATE/UPDATE/DELETE for SCR-NOTIF-001 — no distinct admin-tier permission exists to gate cross-recipient queries. Implemented as: any caller holding PERM_NOTIFICATION_INBOX_VIEW may pass an explicit recipientId (not restricted to self). Flagged, not silently decided — revisit if/when a dedicated admin-scope permission is seeded.",
+    "svcapi_history_search_method_fix": "SVCAPI.md literally specifies 'GET /api/v1/notifications/history' for API-NOTIF-003, but NotificationHistorySearchRequest extends BaseSearchContractRequest (filters/sorts/page/size body) — this platform's own enforce-backend-contract A.6.6 rule (automatic rejection trigger) mandates POST + @RequestBody for any BaseSearchContractRequest-shaped search, never GET. Implemented as POST /api/v1/notifications/history/search instead — a contract-authoring inconsistency in SVCAPI.md, not a deviation from platform governance. API-NOTIF-004 (GET /unread, no body) was kept as GET — it isn't a search endpoint.",
+    "svcapi_layer3_progress": "2026-07-13 — Layer 3 (Template CRUD, API-NOTIF-006..010) is DONE and compiles clean (full reactor BUILD SUCCESS). current_phase/current_sub still deliberately at SVCAPI/PENDING — only Layer 4 (Channel Config, API-NOTIF-011/012) remains for this sub.",
+    "svcapi_template_search_method_fix": "Same A.6.6 fix as svcapi_history_search_method_fix: SVCAPI.md's API-NOTIF-006 literally says 'GET /api/v1/notifications/templates', but NotificationTemplateSearchRequest extends BaseSearchContractRequest — implemented as POST /api/v1/notifications/templates/search instead. GET /templates/{id} (API-NOTIF-010, no body) was kept as GET.",
+    "svcapi_template_bilingual_errcode": "RULE-NOTIF-006's bilingual-completeness check (ERR-NOTIF-0002) is enforced explicitly in NotificationTemplateService (assertBilingual), not via @NotBlank on templateBodyAr/En in the Create/UpdateRequest DTOs — a bean-validation annotation would surface the generic framework VALIDATION_ERROR/400 instead of the plan's own ERR-NOTIF-0002 code. Same precedent as erp-file's FILE_NAME_REQUIRED (also an explicit service-layer check, not a DTO annotation, for the same reason).",
+    "svcapi_complete": "2026-07-13 — Phase SVCAPI is now fully COMPLETE (all 4 layers: event processor/send/schedule, history/unread/read, template CRUD, channel config — 12/12 API-IDs addressed, with API-NOTIF-004/005 and /schedule's true deferred-dispatch left as documented GOVERNANCE-NOTE-BLOCKED contract shells per DRV-NOTIF-003/004, registered in blocked[]). Full reactor (all 9 modules incl. erp-main) compiles clean. current_phase/current_sub advanced to DOC per the Exit step in execute-notification.md. No JUnit tests were written this session (JUNIT test phase is separately gated by CORE+DATAOM+SVCAPI+DOC+INTC+INTR — DOC/INTC/INTR are still ahead)."
   }
 }
