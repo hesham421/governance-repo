@@ -318,8 +318,9 @@ Total: 1 active (DEFERRED — non-blocking). No new OQs raised by P3 in this gen
 | DRV-ORG-018 | SECTION 2 | DB Alignment Manifest rebuild — CONTRACT-1 compliance | Manifest rebuilt to canonical 5-column form (FIELD-ID, DBF-ID, Plan Type, FK/XM-ID, Match Status); prior format duplicated Column Name and raw DB Type from the DB Field Traceability Matrix, violating CONTRACT-1 | 4A-005-006 audit finding |
 | DRV-ORG-019 | PHASE SVC+API | Per-API REPOSITORY STRATEGY blocks | Single module-level prose note replaced with a per-API-ID 5-field table (DB Operation, Join strategy, Transaction boundary, Fetch strategy, Bulk operation flag) for all 44 APIs per HR-2 | 4A-005-005 audit finding |
 | DRV-ORG-020 | PHASE F2 | F2-SERVICE structured field blocks | All 7 F2-SERVICE blocks rebuilt with labeled fields (Service class, Observable type, Error handling, Loading state, Caching, XM-ID impact) per HR-3, replacing condensed narrative prose | 4A-005-004 audit finding |
+| DRV-ORG-021 | PHASE F4 | /tree route ordering in Angular router | `/tree` child route declared before `/:id/*` routes in DepartmentModule and CostCenterModule route arrays — prevents Angular router from capturing the literal string "tree" as an `:id` path parameter | F4 gate, angular router behavior |
 
-Sequence confirmed contiguous DRV-ORG-001..020. No gaps.
+Sequence confirmed contiguous DRV-ORG-001..021. No gaps.
 <!-- PHASE:DERIVATION-LOG:END -->
 
 ---
@@ -786,7 +787,244 @@ All client-side validators are advisory; every RULE-ID is re-enforced server-sid
 
 ---
 
-<!-- PHASE:SEC:START -->
+<!-- PHASE:F4:START -->
+# PHASE F4 — Frontend Routing & Component Structure
+*(AMEND-P3-D — new phase, first applied here)*
+
+F4 Prerequisite: F3 [✓] confirmed. Proceeding with routing specs.
+
+Module slug   : `org`
+Module class  : `OrgModule` — lazy-loaded via app-routing.module.ts
+Module file   : `src/app/org/org.module.ts`
+Imports       : ReactiveFormsModule, RouterModule, SharedModule
+  (SharedModule provides: bilingual-error-display directive, permission-directive,
+   lov-dropdown component, active-toggle component, paginated-table component)
+
+---
+
+  <!-- SUB:SCR-ORG-001:START -->
+  ### F4-SCREEN — SCR-ORG-001 — Legal Entities
+  Route path         : `/org/legal-entities`
+  Module             : `OrgModule` — lazy-loaded
+                       `loadChildren: () => import('./org/org.module').then(m => m.OrgModule)`
+
+  ROUTE GUARD:
+    canActivate      : `[AuthGuard, PermissionGuard]`
+    VIEW permission  : `PERM_ORG_LEGAL_ENTITY_VIEW`
+    Route denied     : redirect → `/unauthorized`
+
+  CHILD ROUTES:
+    `/org/legal-entities/new`        → `LegalEntityEntryComponent` — guard: `PERM_ORG_LEGAL_ENTITY_CREATE`
+    `/org/legal-entities/:id/edit`   → `LegalEntityEntryComponent` — guard: `PERM_ORG_LEGAL_ENTITY_UPDATE`
+    `/org/legal-entities/:id/view`   → `LegalEntityEntryComponent` (VIEW mode, all fields read-only) — guard: `PERM_ORG_LEGAL_ENTITY_VIEW`
+
+  COMPONENTS:
+    Search component : `LegalEntitySearchComponent`
+      File           : `src/app/org/components/legal-entity/legal-entity-search/legal-entity-search.component.ts`
+      Facade bound   : `LegalEntityFacade`
+      Inputs         : none — reads facade signals directly
+      Outputs        : none — navigates via `Router.navigate`
+
+    Entry component  : `LegalEntityEntryComponent`
+      File           : `src/app/org/components/legal-entity/legal-entity-entry/legal-entity-entry.component.ts`
+      Mode           : resolved from `ActivatedRoute` — `/new` → CREATE · `/:id/edit` → EDIT · `/:id/view` → VIEW
+      Facade bound   : `LegalEntityFacade`
+  <!-- SUB:SCR-ORG-001:END -->
+
+  <!-- SUB:SCR-ORG-002:START -->
+  ### F4-SCREEN — SCR-ORG-002 — Branches
+  Route path         : `/org/branches`
+  Module             : `OrgModule`
+
+  ROUTE GUARD:
+    canActivate      : `[AuthGuard, PermissionGuard]`
+    VIEW permission  : `PERM_ORG_BRANCH_VIEW`
+    Route denied     : redirect → `/unauthorized`
+
+  CHILD ROUTES:
+    `/org/branches/new`        → `BranchEntryComponent` — guard: `PERM_ORG_BRANCH_CREATE`
+    `/org/branches/:id/edit`   → `BranchEntryComponent` — guard: `PERM_ORG_BRANCH_UPDATE`
+    `/org/branches/:id/view`   → `BranchEntryComponent` (VIEW mode) — guard: `PERM_ORG_BRANCH_VIEW`
+
+  COMPONENTS:
+    Search component : `BranchSearchComponent`
+      File           : `src/app/org/components/branch/branch-search/branch-search.component.ts`
+      Facade bound   : `BranchFacade`
+
+    Entry component  : `BranchEntryComponent`
+      File           : `src/app/org/components/branch/branch-entry/branch-entry.component.ts`
+      Mode           : resolved from `ActivatedRoute`
+      Facade bound   : `BranchFacade`
+  <!-- SUB:SCR-ORG-002:END -->
+
+  <!-- SUB:SCR-ORG-003:START -->
+  ### F4-SCREEN — SCR-ORG-003 — Regions
+  Route path         : `/org/regions`
+  Module             : `OrgModule`
+
+  ROUTE GUARD:
+    canActivate      : `[AuthGuard, PermissionGuard]`
+    VIEW permission  : `PERM_ORG_REGION_VIEW`
+    Route denied     : redirect → `/unauthorized`
+
+  CHILD ROUTES:
+    `/org/regions/new`        → `RegionEntryComponent` — guard: `PERM_ORG_REGION_CREATE`
+    `/org/regions/:id/edit`   → `RegionEntryComponent` — guard: `PERM_ORG_REGION_UPDATE`
+    `/org/regions/:id/view`   → `RegionEntryComponent` (VIEW mode) — guard: `PERM_ORG_REGION_VIEW`
+
+  COMPONENTS:
+    Search component : `RegionSearchComponent`
+      File           : `src/app/org/components/region/region-search/region-search.component.ts`
+      Facade bound   : `RegionFacade`
+
+    Entry component  : `RegionEntryComponent`
+      File           : `src/app/org/components/region/region-entry/region-entry.component.ts`
+      Mode           : resolved from `ActivatedRoute`
+      Facade bound   : `RegionFacade`
+  <!-- SUB:SCR-ORG-003:END -->
+
+  <!-- SUB:SCR-ORG-004:START -->
+  ### F4-SCREEN — SCR-ORG-004 — Departments
+  Route path         : `/org/departments`
+  Module             : `OrgModule`
+
+  ROUTE GUARD:
+    canActivate      : `[AuthGuard, PermissionGuard]`
+    VIEW permission  : `PERM_ORG_DEPARTMENT_VIEW`
+    Route denied     : redirect → `/unauthorized`
+
+  CHILD ROUTES:
+    `/org/departments/new`        → `DepartmentEntryComponent` — guard: `PERM_ORG_DEPARTMENT_CREATE`
+    `/org/departments/:id/edit`   → `DepartmentEntryComponent` — guard: `PERM_ORG_DEPARTMENT_UPDATE`
+    `/org/departments/:id/view`   → `DepartmentEntryComponent` (VIEW mode) — guard: `PERM_ORG_DEPARTMENT_VIEW`
+    `/org/departments/tree`       → `DepartmentTreeComponent` — guard: `PERM_ORG_DEPARTMENT_VIEW`
+    Note: `/tree` route declared BEFORE `/:id/*` routes to prevent Angular router ambiguity
+
+  COMPONENTS:
+    Search component : `DepartmentSearchComponent`
+      File           : `src/app/org/components/department/department-search/department-search.component.ts`
+      Facade bound   : `DepartmentFacade`
+
+    Entry component  : `DepartmentEntryComponent`
+      File           : `src/app/org/components/department/department-entry/department-entry.component.ts`
+      Mode           : resolved from `ActivatedRoute`
+      Facade bound   : `DepartmentFacade`
+      Node type field: rendered as read-only display on EDIT/VIEW modes (F4-RULE-7 + RULE-ORG-020)
+
+    Tree component   : `DepartmentTreeComponent` ← tree entity (DRV-ORG-007)
+      File           : `src/app/org/components/department/department-tree/department-tree.component.ts`
+      Facade bound   : `DepartmentFacade` — consumes `treeData$` signal
+      Mode           : read-only hierarchical display; each node has "Edit" action → navigates to `/:id/edit`
+  <!-- SUB:SCR-ORG-004:END -->
+
+  <!-- SUB:SCR-ORG-005:START -->
+  ### F4-SCREEN — SCR-ORG-005 — Cost Centers
+  Route path         : `/org/cost-centers`
+  Module             : `OrgModule`
+
+  ROUTE GUARD:
+    canActivate      : `[AuthGuard, PermissionGuard]`
+    VIEW permission  : `PERM_ORG_COST_CENTER_VIEW`
+    Route denied     : redirect → `/unauthorized`
+
+  CHILD ROUTES:
+    `/org/cost-centers/new`        → `CostCenterEntryComponent` — guard: `PERM_ORG_COST_CENTER_CREATE`
+    `/org/cost-centers/:id/edit`   → `CostCenterEntryComponent` — guard: `PERM_ORG_COST_CENTER_UPDATE`
+    `/org/cost-centers/:id/view`   → `CostCenterEntryComponent` (VIEW mode) — guard: `PERM_ORG_COST_CENTER_VIEW`
+    `/org/cost-centers/tree`       → `CostCenterTreeComponent` — guard: `PERM_ORG_COST_CENTER_VIEW`
+    Note: `/tree` declared before `/:id/*` routes
+
+  COMPONENTS:
+    Search component : `CostCenterSearchComponent`
+      File           : `src/app/org/components/cost-center/cost-center-search/cost-center-search.component.ts`
+      Facade bound   : `CostCenterFacade`
+
+    Entry component  : `CostCenterEntryComponent`
+      File           : `src/app/org/components/cost-center/cost-center-entry/cost-center-entry.component.ts`
+      Mode           : resolved from `ActivatedRoute`
+      Facade bound   : `CostCenterFacade`
+      Node type field: read-only on EDIT/VIEW (RULE-ORG-020)
+
+    Tree component   : `CostCenterTreeComponent` ← tree entity (DRV-ORG-007)
+      File           : `src/app/org/components/cost-center/cost-center-tree/cost-center-tree.component.ts`
+      Facade bound   : `CostCenterFacade` — consumes `treeData$` signal
+      Mode           : read-only; node "Edit" action → `/:id/edit`
+  <!-- SUB:SCR-ORG-005:END -->
+
+  <!-- SUB:SCR-ORG-006:START -->
+  ### F4-SCREEN — SCR-ORG-006 — Profit Centers
+  Route path         : `/org/profit-centers`
+  Module             : `OrgModule`
+
+  ROUTE GUARD:
+    canActivate      : `[AuthGuard, PermissionGuard]`
+    VIEW permission  : `PERM_ORG_PROFIT_CENTER_VIEW`
+    Route denied     : redirect → `/unauthorized`
+
+  CHILD ROUTES:
+    `/org/profit-centers/new`        → `ProfitCenterEntryComponent` — guard: `PERM_ORG_PROFIT_CENTER_CREATE`
+    `/org/profit-centers/:id/edit`   → `ProfitCenterEntryComponent` — guard: `PERM_ORG_PROFIT_CENTER_UPDATE`
+    `/org/profit-centers/:id/view`   → `ProfitCenterEntryComponent` (VIEW mode) — guard: `PERM_ORG_PROFIT_CENTER_VIEW`
+
+  COMPONENTS:
+    Search component : `ProfitCenterSearchComponent`
+      File           : `src/app/org/components/profit-center/profit-center-search/profit-center-search.component.ts`
+      Facade bound   : `ProfitCenterFacade`
+
+    Entry component  : `ProfitCenterEntryComponent`
+      File           : `src/app/org/components/profit-center/profit-center-entry/profit-center-entry.component.ts`
+      Mode           : resolved from `ActivatedRoute`
+      Facade bound   : `ProfitCenterFacade`
+  <!-- SUB:SCR-ORG-006:END -->
+
+  <!-- SUB:SCR-ORG-007:START -->
+  ### F4-SCREEN — SCR-ORG-007 — Location Sites
+  Route path         : `/org/location-sites`
+  Module             : `OrgModule`
+
+  ROUTE GUARD:
+    canActivate      : `[AuthGuard, PermissionGuard]`
+    VIEW permission  : `PERM_ORG_LOCATION_SITE_VIEW`
+    Route denied     : redirect → `/unauthorized`
+
+  CHILD ROUTES:
+    `/org/location-sites/new`        → `LocationSiteEntryComponent` — guard: `PERM_ORG_LOCATION_SITE_CREATE`
+    `/org/location-sites/:id/edit`   → `LocationSiteEntryComponent` — guard: `PERM_ORG_LOCATION_SITE_UPDATE`
+    `/org/location-sites/:id/view`   → `LocationSiteEntryComponent` (VIEW mode) — guard: `PERM_ORG_LOCATION_SITE_VIEW`
+
+  COMPONENTS:
+    Search component : `LocationSiteSearchComponent`
+      File           : `src/app/org/components/location-site/location-site-search/location-site-search.component.ts`
+      Facade bound   : `LocationSiteFacade`
+
+    Entry component  : `LocationSiteEntryComponent`
+      File           : `src/app/org/components/location-site/location-site-entry/location-site-entry.component.ts`
+      Mode           : resolved from `ActivatedRoute`
+      Facade bound   : `LocationSiteFacade`
+  <!-- SUB:SCR-ORG-007:END -->
+
+---
+
+**F4 GATE CHECK:**
+```
+[ ✓ ] All 7 SCR-IDs have F4-SCREEN blocks
+[ ✓ ] All route path slugs derived per F4-RULE-1 (no PK, plural kebab-case)
+[ ✓ ] All routes carry canActivate → [AuthGuard, PermissionGuard]
+[ ✓ ] All PERM_* codes sourced from SEC phase — none invented here
+[ ✓ ] SearchComponent and EntryComponent are separate per F4-RULE-5 (PATTERN-1)
+[ ✓ ] Tree components declared for both tree-bearing entities (Department, CostCenter — DRV-ORG-007)
+[ ✓ ] /tree routes declared before /:id/* routes (router ambiguity avoided — DRV-ORG-021)
+[ ✓ ] All components bound to exactly one Facade (F4-RULE-6)
+[ ✓ ] All file paths follow src/app/org/components/[entity-kebab]/[type]/ pattern
+F4 Gate: PASSED ✓
+```
+
+DRV-ORG-021: `/tree` child route declared before `/:id/edit` and `/:id/view` in Department and CostCenter route arrays. Angular router matches routes top-to-bottom; if `/:id/*` appeared first, the literal string "tree" would be captured as an `:id` param, causing a 404 on tree navigation. This ordering is non-obvious and governance-required.
+<!-- PHASE:F4:END -->
+
+---
+
+
 # PHASE SEC — Security Specifications & Permissions Matrix
 
 SEC_PAGES seeding: PAGE_CODE auto-generates PERM_VIEW / PERM_CREATE / PERM_UPDATE / PERM_DEACTIVATE per SCR-ID (Security Engine SEC-3 Declaration).
@@ -827,7 +1065,7 @@ Auto-correction applied: None in this pass (continuation of prior session — DR
 All 8 ENTITY-IDs ✓ across DATA+DOM/SVC+API/F1; all 94 FIELD-IDs bound to DBF-IDs ✓; QR-ORG-001..019 (core) generated ✓. QR-ORG-010 marked ⏸ (non-blocking, tracked under OQ-001).
 
 **Table 2 — Operations Coverage (summary):**
-All 44 API-IDs ✓ mapped to a Create/Search/Update/Deactivate/Activate/GetById/Tree operation, each with a UI action on its SCR-ID and a TC-ID in test-plan-org-001.md (TC-ORG-001..061).
+All 44 API-IDs ✓ mapped to a Create/Search/Update/Deactivate/Activate/GetById/Tree operation, each with a UI action on its SCR-ID and a TC-ID in test-plan-org-001.md (TC-ORG-001..061). All 7 SCR-IDs have F4-SCREEN blocks ✓ (AMEND-P3-D).
 
 **Table 3 — Validations Coverage (summary):**
 All 20 RULE-IDs ✓ have SVC+API enforcement, F3 spec (where client-relevant) or explicit "server-only" note (RULE-ORG-009/010, enforced in consuming modules — informational here), ERR-ORG-ID, and TC-ID coverage.
@@ -908,10 +1146,11 @@ LOV-IDs        : LOV-ORG-001..006 (6)
 ERR-IDs        : ERR-ORG-0001..0018 (18)
 SCR-IDs        : SCR-ORG-001..007 (7)
 QR-IDs         : QR-ORG-001..019 (19)
-DRV-IDs        : DRV-ORG-001..015 (contiguous)
+DRV-IDs        : DRV-ORG-001..021 (contiguous)
 XM-IDs Outbound: None — ROOT MODULE confirmed
 XM Inbound Stubs: 4 (Finance/ProfitCenter, Inventory/LocationSite, Layer-3 multi-entity, TBD/Region)
 OQ-IDs Open    : OQ-001 (DEFERRED — non-blocking)
+AMEND applied  : AMEND-P3-D (PHASE F4 — Frontend Routing & Component Structure)
 Gate Status    : ALIGN GATE PASSED ✓
 Next Action    : MODE 4A (Pre-flight governance audit) → MODE 3 (Agent execution)
 ────────────────────────────────────────────────────────────────
