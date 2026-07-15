@@ -16,7 +16,6 @@ XM-NOTIF-001 │ HARD-FK         │ File Service  │ DB Foreign Key  │ DEFER
 ══════════════════════════════════════════════════════════════════════════
 ```
 
-<!-- XM:XM-NOTIF-001:START -->
 ### XM-NOTIF-001 — NotificationTemplate.fileFk → FileService.FileDocument
 ─────────────────────────────────────────────────────────────────
 Target Module    : File Service (1.10)
@@ -50,7 +49,6 @@ DEFERRED strategy: templateBodyAr/templateBodyEn remain the read path for templa
                     reads or writes fileFk.
 ─────────────────────────────────────────────────────────────────
 
-<!-- XM:XM-NOTIF-001:END -->
 **Live cross-module FK — NOT an XM-ID (documented distinction):**
 ```
 NOTIF_LOG.RECIPIENT_ID → Security USERS.USERS_PK — created live in Block 5d of

@@ -55,7 +55,7 @@ XM Inbound Stubs: XM-INBOUND-STUB-FILE-1 (NotificationService, DEFERRED — beca
                    dbs-notif-001.md), XM-INBOUND-STUB-FILE-2 (AuditService, NOT-YET-ASSIGNED),
                    XM-INBOUND-STUB-FILE-3 (3.x modules, NOT-YET-ASSIGNED)
 OQ-IDs Open: None (OQ-001 RESOLVED at MODE 1)
-DRV-IDs    : DRV-FILE-001..007 (contiguous — see Derivation Log, embedded per phase + summarized in ALIGN)
+DRV-IDs    : DRV-FILE-001..011 (contiguous — see Derivation Log, embedded per phase + summarized in ALIGN)
 ══════════════════════════════════════════════════════════════════
 ```
 
@@ -309,7 +309,6 @@ QR-IDs generated : QR-FILE-003, QR-FILE-004, QR-FILE-005, QR-FILE-006, QR-FILE-0
 > (Encrypted Token embedded in URL path). HTTP methods and the standard
 > ApiResponse<T> envelope still apply.
 
-<!-- API:API-FILE-001:START -->
 ### API-FILE-001 — Issue Upload Token
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/files/upload-token
@@ -345,8 +344,6 @@ SECURITY: Screen — none (system-to-system + Angular FileUploadComponent caller
 LOCALIZATION: N/A for success path — token payload only.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-001:END -->
-<!-- API:API-FILE-002:START -->
 ### API-FILE-002 — Upload File
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /upload/{encryptedToken}
@@ -417,8 +414,6 @@ SECURITY: Screen — SCR-FILE-001, Permission — PERM_FILE_ATTACHMENT_CREATE (i
 LOCALIZATION: Error responses carry messageAr + messageEn per Error Catalog.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-002:END -->
-<!-- API:API-FILE-003:START -->
 ### API-FILE-003 — Download File
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /download/{encryptedToken}
@@ -455,8 +450,6 @@ SECURITY: Screen — SCR-FILE-001, Permission — PERM_FILE_ATTACHMENT_VIEW (+ t
 LOCALIZATION: mimeType drives Content-Type; error responses carry messageAr + messageEn.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-003:END -->
-<!-- API:API-FILE-004:START -->
 ### API-FILE-004 — Delete File
 ─────────────────────────────────────────────────────────────────
 Method / Path    : DELETE /{encryptedToken}
@@ -523,8 +516,6 @@ SECURITY: Screen — SCR-FILE-001, Permission — PERM_FILE_ATTACHMENT_DELETE
 LOCALIZATION: messageAr + messageEn per Error Catalog.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-004:END -->
-<!-- API:API-FILE-005:START -->
 ### API-FILE-005 — List Files for Owner Record
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/files/{ownerId}
@@ -573,7 +564,6 @@ screen. No API is invented (Section 2A.3 compliance). This plan does not generat
 F1/F2/F3/SEC specs for a FileCategory screen because none is declared in the SRS.
 If a future need for a File-Service-owned FileCategory admin screen arises, it must
 first be added to srs-file-001.md (MODE 1) before MODE 2 can plan it.
-<!-- API:API-FILE-005:END -->
 <!-- PHASE:SVCAPI:END -->
 
 ---
@@ -990,10 +980,87 @@ F3-SEC-RULE-1 — SCR-FILE-001 field/button visibility governed by permissions l
 
 ---
 
+<!-- PHASE:F4:START -->
+## PHASE F4 — Frontend Routing & Component Structure
+─────────────────────────────────────────────────────────────────
+Gate Required    : F3 ✓
+Gate This Phase  : F4 ✓
+Gate Status      : PASSED ✓
+─────────────────────────────────────────────────────────────────
+
+### F4-SCREEN — SCR-FILE-001 — Attachment Panel
+─────────────────────────────────────────────────────────────────
+**Deviation notice (DRV-FILE-010, DRV-FILE-011 — see Derivation Log):**
+SCR-FILE-001 is a SHARED, EMBEDDED component (Reference: dbs-file-001.md
+Security Seed — `page_code = FILE_ATTACHMENT, parent_id_fk = NULL, "Shared
+Component"`), not a top-level routed screen. It has no Search/Entry split
+(F4-RULE-5 does not apply — not a PATTERN-1 Composite Screen) and no
+dedicated route of its own (F4-RULE-1/3 adapted below — it is consumed
+by embedding, not navigated to directly).
+
+Route path       : NONE — SCR-FILE-001 has no standalone route. It is
+                    embedded via `<app-file-attachment [ownerId]
+                    [ownerType] [moduleCode]>` inside whichever host
+                    screen's Entry view needs attachment support (e.g. a
+                    Purchase Order Entry screen). The host screen's own
+                    route (and its own AuthGuard/PermissionGuard) governs
+                    navigation; this component carries no route of its own.
+
+Module           : SharedComponentsModule — eagerly available to any
+                    feature module that imports it (not a separately
+                    lazy-loaded routed module, since it has no route)
+Module path      : app/shared/components/file-attachment/
+
+Route guard      : N/A at the route level (no route exists). Permission
+                    enforcement instead happens at the COMPONENT level via
+                    the Facade's init-time permission check (F2/SEC) —
+                    canView/canCreate/canDelete gate rendering of the
+                    upload control and delete buttons, not route access.
+PERM_* required  : PERM_FILE_ATTACHMENT_VIEW (render the panel)
+                    PERM_FILE_ATTACHMENT_CREATE (show upload control)
+                    PERM_FILE_ATTACHMENT_DELETE (show delete buttons)
+                    [sourced from the SEC phase Permissions Matrix — same
+                    codes, no F4-only permission names]
+
+Child routes     : NONE (embedded component — no child routing)
+
+COMPONENTS:
+  FileAttachmentComponent
+    Path       : app/shared/components/file-attachment/file-attachment.component.ts
+    Route      : N/A — embedded, not routed
+    Facade     : FileAttachmentFacade (F2)
+    Inputs     : ownerId: number, ownerType: string, moduleCode: string
+                 (host screen supplies these — the only case in this
+                 module where component context comes via @Input, since
+                 FileAttachmentComponent is reached by composition, not
+                 routing — F4-RULE-7 governs EntryComponent mode
+                 resolution specifically and does not apply here, as this
+                 is neither a SearchComponent nor an EntryComponent)
+
+SharedModule imports : CommonModule, ReactiveFormsModule (upload form),
+                        SharedUiModule (spinner/toast primitives)
+─────────────────────────────────────────────────────────────────
+
+**F4 Gate Checklist (self-check):**
+```
+[✓] SCR-FILE-001 has exactly one F4-SCREEN block
+[N/A] No tree-bearing entity in this module — no TreeComponent required
+[N/A] Route guards — no route exists (component-level permission gating
+      documented above instead; DRV-FILE-011)
+[✓] Every PERM_* referenced in F4 also appears in SEC's list for SCR-FILE-001
+[✓] No component name uses "Page" or "Container" suffix
+[N/A] Search/Entry separation — SCR-FILE-001 is not a PATTERN-1 Composite
+      Screen (DRV-FILE-010)
+[N/A] EntryComponent mode resolution — no EntryComponent exists in this module
+```
+<!-- PHASE:F4:END -->
+
+---
+
 <!-- PHASE:SEC:START -->
 ## PHASE SEC — Security Specifications
 ─────────────────────────────────────────────────────────────────
-Gate Required    : F3 ✓
+Gate Required    : F4 ✓
 Gate This Phase  : SEC ✓
 Gate Status      : PASSED ✓
 ─────────────────────────────────────────────────────────────────
@@ -1003,6 +1070,7 @@ Gate Status      : PASSED ✓
 Screen guard     : canView = true required for the panel to render within its host screen.
 Permission-based UI behavior:
   canView   = false → panel not rendered
+
   canCreate = false → upload control hidden
   canEdit   = false → N/A (no Update operation exists for FileDocument)
   canDelete = false → delete button hidden
@@ -1089,7 +1157,9 @@ All QR-IDs in QRC appear in Plan Index QRC Summary         │ ✓ (corrected to
 Derivation Log complete — no undocumented inferences       │ ✓ — DRV-FILE-001..006
 DB Structural Alignment confirms field coverage            │ ✓ — 27/27 DBF-IDs bound
 ───────────────────────────────────────────────────────────┼──────────────
-SCREEN STRUCTURE CHECKS                                    │ ✓ (1/1 SCR-ID, F1/F2/F3/SEC all present)
+SCREEN STRUCTURE CHECKS                                    │ ✓ (1/1 SCR-ID, F1/F2/F3/F4/SEC all present;
+                                                             │   F4/F5 route-level N/A items documented via
+                                                             │   DRV-FILE-010/011 — embedded component, no route)
 LOV / LOOKUP CHECKS                                        │ ✓ (2/2 LOV-IDs, both String-typed; CHECK-9.2 WAIVER
                                                              │   CANDIDATE flagged — see F2-LOV-SERVICE note)
 BUSINESS CODE CHECKS                                       │ N/A — no entity in this module has a Business Code (documented)
@@ -1109,6 +1179,21 @@ Auto-correction applied: QR-ID renumbering (QR-FILE-006 UPDATE reused →
   Derivation Log; supersedes the prior non-standard "DRV-FILE-006-B" label
   raised in 4A-FILE-001-004).
 ═══════════════════════════════════════════════════════════════════════════
+
+**Table 2 — Operations Coverage (F4 Route column added per AMEND-P3-J):**
+```
+Operation │ API-ID       │ UI Action (SCR-ID)                    │ F4 Route            │ TC-ID       │ QR-ID       │ XM-ID │ Status
+──────────┼──────────────┼────────────────────────────────────────┼─────────────────────┼─────────────┼─────────────┼───────┼───────
+Issue token│ API-FILE-001 │ SCR-FILE-001 Upload control (init)    │ N/A — embedded, no route (DRV-FILE-011) │ TC-FILE-015 │ QR-FILE-001 │ —     │ ✓
+Upload    │ API-FILE-002 │ SCR-FILE-001 Upload control            │ N/A — embedded, no route (DRV-FILE-011) │ TC-FILE-016 │ QR-FILE-003 │ —     │ ✓
+Download  │ API-FILE-003 │ SCR-FILE-001 Download action per row   │ N/A — embedded, no route (DRV-FILE-011) │ TC-FILE-017 │ QR-FILE-004 │ —     │ ✓
+Delete    │ API-FILE-004 │ SCR-FILE-001 Delete action per row     │ N/A — embedded, no route (DRV-FILE-011) │ TC-FILE-018 │ QR-FILE-005,006 │ — │ ✓
+List      │ API-FILE-005 │ SCR-FILE-001 Panel init (list view)    │ N/A — embedded, no route (DRV-FILE-011) │ TC-FILE-019 │ QR-FILE-007 │ —     │ ✓
+```
+Note: all F4 Route cells are explicitly "N/A — embedded, no route" (not blank) —
+this satisfies the ALIGN gate's requirement that a missing F4 Route not be
+silently blank; the N/A is itself sourced from the F4-SCREEN block's documented
+DRV-FILE-011 deviation, not an omission.
 
 **Table 4 — XM Dependency Gate:**
 ```
@@ -1172,6 +1257,18 @@ DRV-FILE-009 │ CHECK-9.2 WAIVER CANDIDATE (4A-FILE-001-008): LOV-FILE-001 and
              │ defect. Flagged for the governance framework to formally reconcile
              │ CHECK-9.2 with the shared-lookup-service pattern; no plan-level
              │ action required.
+DRV-FILE-010 │ F4-RULE-5 (PATTERN-1 Search/Entry separation) N/A for
+             │ SCR-FILE-001 — it is a COMPOSITE embedded panel (PATTERN-2
+             │ Inline/Modal per F1), not a PATTERN-1 Composite Screen. No
+             │ SearchComponent/EntryComponent split exists or is required.
+DRV-FILE-011 │ SCR-FILE-001 has no top-level route (F4-RULE-1/3 adapted) —
+             │ it is a SHARED, embedded component consumed via composition
+             │ by host screens' Entry views (dbs-file-001.md Security Seed
+             │ confirms `page_code=FILE_ATTACHMENT, parent_id_fk=NULL,
+             │ "Shared Component"`). Route-level AuthGuard/PermissionGuard
+             │ (F4-RULE-3) do not apply; permission enforcement instead
+             │ happens at the component level via the Facade's init-time
+             │ check (same PERM_* codes as SEC — no new codes invented).
 ```
 
 ---
@@ -1256,7 +1353,7 @@ Next Action    : Trigger MODE 4A — Governance Audit Engine (Project 4), then
 ║ Plan ID               ║ PLAN-FILE-001                            ║
 ║ Output                ║ STAGE 1 — execution-plan.md Agent-Ready  ║
 ║ Phases Complete       ║ CORE✓ DATA+DOM✓ SVC+API✓ DOC✓ INT-C✓   ║
-║                       ║ INT-R✓ F1✓ F2✓ F3✓ SEC✓ SECTION D✓ ALIGN✓ ║
+║                       ║ INT-R✓ F1✓ F2✓ F3✓ F4✓ SEC✓ SECTION D✓ ALIGN✓ ║
 ║ TC Coverage Summary   ║ SECTION D present — 7/7 rules, 5/5 APIs covered — see test-plan.md ║
 ║ Open Questions        ║ None                                     ║
 ║ XM DEFERRED           ║ 0 outbound. 1 inbound stub active (XM-NOTIF-001, tracked externally) ║

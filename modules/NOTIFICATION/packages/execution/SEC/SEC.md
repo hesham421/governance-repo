@@ -2,7 +2,7 @@
 
 ## PHASE SEC — Security Specifications
 ─────────────────────────────────────────────────────────────────
-Gate Required    : F3 ✓
+Gate Required    : F4 ✓
 Gate This Phase  : SEC ✓
 Gate Status      : PASSED ✓
 ─────────────────────────────────────────────────────────────────

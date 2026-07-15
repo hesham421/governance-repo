@@ -5,8 +5,8 @@
 =====================================================
 
 - Project Name  : Enterprise Engine Platform
-- Version       : 2.9.1
-- Last Updated  : 2026-07-11
+- Version       : 2.10.0
+- Last Updated  : 2026-07-14
 - Maintained By : System Architect
 - Governance Level: LOCKED
 
@@ -61,9 +61,9 @@ LAYER-1 — Foundation
 | 1.5  | CurrencyCalendar     | Core   | Yes    | Planned                 | 1.1 / 1.2               |
 | 1.6  | NumberingEngine      | Core   | Yes    | Planned                 | 1.1 / 1.2 / 1.4         |
 | 1.7  | IntegrationService   | Core   | Yes    | Planned                 | 1.1 / 1.2               |
-| 1.8  | NotificationService  | Core   | Yes    | Planned                 | 1.1 / 1.2 / 1.10        |
+| 1.8  | NotificationService  | Core   | Yes    | Active ⚠️ SVCAPI ✓      | 1.1 / 1.2 / 1.10        |
 | 1.9  | AuditService         | Core   | Yes    | Planned                 | 1.1 / 1.2 / 1.10        |
-| 1.10 | FileService          | Core   | Yes    | Planned                 | 1.1 / 1.2               |
+| 1.10 | FileService          | Core   | Yes    | Active ⚠️ SVCAPI ✓      | 1.1 / 1.2               |
 
 Organization Governance Note:
   GOVERNED ✓ MODE 2 (ALIGN GATE PASSED ✓) means:
@@ -77,6 +77,21 @@ MasterData Status Note:
   Partial Active ⚠️ means:
   - Lookup feature (MD_MASTER_LOOKUP + MD_LOOKUP_DETAIL) → ACTIVE ✅ PERMANENT EXCEPTION
   - Item / Customer / Vendor / UnitOfMeasure / Country      → PLANNED (must follow standard)
+
+FileService / NotificationService Status Note (added 2026-07-14):
+  Active ⚠️ SVCAPI ✓ means:
+  - Backend fully implemented and live-tested end-to-end against this dev
+    environment — real Java services, DB migrations applied (V3 for File,
+    V5 for Notification), all governed API-IDs reachable, permissions
+    seeded and granted to SUPER_ADMIN.
+  - DOC / INT-C / INT-R / F1-F3 (frontend) / SEC (full multi-role
+    permission matrix) / ALIGN phases are still PENDING per each module's
+    own execution-state.json — current_phase is deliberately left at DOC,
+    not advanced, until those phases actually run.
+  - Safe for other backend modules to integrate against today — see
+    Section 8's FileService/NotificationService Consumption Rules for the
+    actual verified endpoints, auth requirements, and integration
+    patterns. No Angular/Flutter UI exists for either module yet.
 
 LAYER-1 Internal Build Sequence:
 
@@ -364,8 +379,8 @@ LAYER-1 — Foundation Entities
 | FiscalYear           | (planned)               | CurrencyCalendar     | Planned             | Finance / All Operational              |
 | FiscalPeriod         | (planned)               | CurrencyCalendar     | Planned             | Finance / All Operational              |
 | NumberingPattern     | (planned)               | NumberingEngine      | Planned             | All Operational Modules                |
-| FileDocument         | (planned)               | FileService          | Planned             | NotificationService / AuditService / All 3.x |
-| FileCategory         | (planned)               | FileService          | Planned             | FileService only (per-module config)   |
+| FileDocument         | FILE_DOCUMENT ✓         | FileService          | ACTIVE ✓ SVCAPI      | NotificationService / AuditService / All 3.x |
+| FileCategory         | FILE_CATEGORY ✓         | FileService          | ACTIVE ✓ SVCAPI      | FileService only (per-module config)   |
 
 FileService P0 Note (added 2026-07-11):
   P0 architecture convergence complete — module-registry-file.md +
@@ -373,10 +388,19 @@ FileService P0 Note (added 2026-07-11):
   formalized as FileDocument (table: FILE_DOCUMENT) + FileCategory
   (table: FILE_CATEGORY). Storage: PostgreSQL BYTEA (not Oracle BLOB —
   ARCH-REF-1.10 RESOLUTION-01). See Section 15 for readiness status.
+FileService Implementation Note (added 2026-07-14):
+  SVCAPI complete and live-verified — see Section 3's FileService /
+  NotificationService Status Note and Section 8's FileService Consumption
+  Rule for actual endpoints. FILE_CATEGORY has zero governed seed rows
+  from FileService's own migration by design (srs-file A3: "no module
+  decides which FileCategory rows another module needs — each consuming
+  module decides its own categories") — a consuming module needing a new
+  category must add its own seed row, same precedent as
+  V3__file_service_schema_and_seed.sql Block 5b's dev/test row.
 | AuditLog             | (planned)               | AuditService         | Planned             | All                                    |
-| Notification         | (planned)               | NotificationService  | Planned             | All                                    |
-| NotificationTemplate | (planned)               | NotificationService  | Planned             | All                                    |
-| NotificationChannelConfig | (planned)           | NotificationService  | Planned             | NotificationService only (admin config) |
+| Notification         | NOTIF_LOG ✓             | NotificationService  | ACTIVE ✓ SVCAPI      | All                                    |
+| NotificationTemplate | NOTIF_TEMPLATE ✓        | NotificationService  | ACTIVE ✓ SVCAPI      | All                                    |
+| NotificationChannelConfig | NOTIF_CHANNEL_CONFIG ✓ | NotificationService  | ACTIVE ✓ SVCAPI  | NotificationService only (admin config) |
 
 NotificationService P0 Note (added 2026-07-11):
   P0 architecture convergence complete — module-registry-notif.md +
@@ -573,14 +597,93 @@ AUDIT RULES:
 
 NOTIFICATION RULES:
 - Every business event MAY produce a Notification
-- Notification channels: InApp / Email / SMS / WhatsApp
+- Notification channels: InApp / Email / SMS / WhatsApp (+ Push — 5 total, see Section 6)
 - Templates MUST be defined per event type
 - NotificationService owns delivery — modules only publish events
+
+NotificationService Consumption Rule (added 2026-07-14, verified against live
+backend code + a live end-to-end test run):
+  Two real ingress paths exist today. The RabbitMQ path described in
+  module-registry-notif.md's CORE.md ("erp.notification.exchange /
+  erp.notification.queue / routing key notification.send") is
+  architecturally documented but NOT YET IMPLEMENTED — no RabbitMQ
+  dependency, listener, or exchange exists anywhere in this backend as of
+  this note. Do not assume it works; use one of the two paths below.
+    1. REST — POST /api/v1/notifications/send (or /schedule; /schedule
+       currently dispatches immediately like /send, see DRV-NOTIF-004 —
+       true deferred/durable scheduling is not implemented yet). JWT
+       required, gated only by isAuthenticated() — any logged-in caller
+       may send, no PERM_NOTIFICATION_* permission is enforced on this
+       endpoint specifically.
+       Body: { recipientId, channelHint: [...], templateCode, contextData,
+       priority: HIGH|MEDIUM|LOW, moduleCode, referenceId?, referenceType? }
+       recipientId MUST be a real USERS.users_pk — NOTIF_LOG.recipient_id
+       carries a live FK constraint to USERS; an unknown id fails with
+       DB_CONSTRAINT_VIOLATION (409), not a friendly validation error.
+    2. Same-JVM Spring Event — publish a
+       com.example.erp.notification.event.NotificationRequestedEvent
+       (wraps the same NotificationSendRequest) via
+       ApplicationEventPublisher; consumed synchronously, same
+       transaction, by NotificationRequestedEventListener. Preferred for
+       any module already running inside the same Spring context/
+       transaction — no HTTP round-trip, no separate auth context needed.
+  channelHint is decided by the PUBLISHING module — NotificationService
+  never infers a channel from event type or moduleCode (Conflict #23,
+  CLOSED). If templateCode does not resolve to a real NOTIF_TEMPLATE row,
+  RULE-NOTIF-006 falls back to a generic in-memory template rather than
+  failing the send (DRV-NOTIF-002) — no SYSTEM_DEFAULT template is seeded
+  anywhere yet, so this fallback is always in play until one is.
+  Read-tracking is NOT implemented: GET /unread and PUT /{id}/read
+  (API-NOTIF-004/005) are governed contract shells that always throw
+  NOTIF_READ_TRACKING_UNAVAILABLE (422), pending an SRS/DB amendment
+  (DRV-NOTIF-003 — NOTIF_LOG has no read/unread column).
+  Querying history: POST /api/v1/notifications/history/search requires
+  PERM_NOTIFICATION_INBOX_VIEW; recipientId defaults to the caller's own
+  resolved user id if omitted (any holder of INBOX_VIEW may currently pass
+  an explicit recipientId to query others — no distinct admin-tier
+  permission is seeded yet for that restriction, flagged not silently
+  decided).
+  No module may query NOTIF_LOG / NOTIF_TEMPLATE / NOTIF_CHANNEL_CONFIG
+  directly — same rule as MD_MASTER_LOOKUP (Section 4).
 
 FILE RULES:
 - All attachments MUST be stored via FileService
 - No module may store files directly
 - Every attachment MUST be linked to an entity (entityType + entityId)
+
+FileService Consumption Rule (added 2026-07-14, verified against live
+backend code + a live end-to-end test run):
+  FileService is NOT a plain CRUD API — it is a short-lived, encrypted,
+  single-use-token-gated flow. Consuming modules MUST follow this
+  sequence; never assume /upload or /download can be called without a
+  freshly issued token:
+    1. POST /api/v1/files/upload-token — JWT required, gated only by
+       isAuthenticated() (PERM_FILE_ATTACHMENT_* permissions exist and are
+       seeded per SCR-FILE-001, but are not actually enforced on this
+       call). Body: { ownerId, ownerType, moduleCode, fileCategoryFk }.
+       fileCategoryFk MUST be a pre-existing FILE_CATEGORY row —
+       FileCategory has NO Create/Update API (DRV-FILE-001, DB-seeded
+       reference table only; srs-file A3 explicitly says "no module
+       decides which FileCategory rows another module needs — each
+       consuming module decides its own categories"). A module needing a
+       new category must add its own migration seed row — see
+       V3__file_service_schema_and_seed.sql Block 5b for the precedent.
+    2. POST /upload/{encryptedToken} (multipart) — permitAll, NO JWT; the
+       token itself is the authorization. Single-use, ~100-minute TTL
+       (RULE-FILE-002).
+    3. To read back later: POST /api/v1/files/{fileDocumentPk}/access-token
+       ?action=DOWNLOAD (JWT required, isAuthenticated() only) → then
+       GET /download/{encryptedToken} (permitAll, token-only).
+    4. To delete: POST .../access-token?action=DELETE requires
+       PERM_SYSTEM_ADMIN specifically — NOT PERM_FILE_ATTACHMENT_DELETE.
+       RULE-FILE-007's "owner-or-Admin" restriction is Admin-only today
+       (OQ-FILE-001 — a non-owner-vs-owner authorization check across
+       modules is not designed yet) → then DELETE /{encryptedToken}
+       (permitAll, token-only).
+  GET /api/v1/files/{ownerId} lists FileDocument rows for a given owner
+  (JWT required).
+  No module may query FILE_DOCUMENT / FILE_CATEGORY directly — same rule
+  as MD_MASTER_LOOKUP (Section 4).
 
 INTEGRATION RULES:
 - All external connections MUST go through IntegrationService
@@ -814,6 +917,34 @@ Rule: All deferred modules MUST be buildable on top without redesigning any core
 |         |            | Security extension scope PARTIALLY_READY ⚠️, no longer           |             |
 |         |            | BLOCKED. AQ-006/AQ-007 remain open (separate, non-blocking       |             |
 |         |            | issue — registry version-citation mismatch, untouched).          |             |
+
+| 2.10.0  | 2026-07-14 | FileService (1.10) and NotificationService (1.8)                | Hesham /    |
+|         |            | backend SVCAPI implementation complete and live-verified         | live SVCAPI |
+|         |            | end-to-end (all governed API-IDs reachable, DB migrations V3/V5  | test run    |
+|         |            | applied, permissions seeded and granted to SUPER_ADMIN). This    |             |
+|         |            | entry documents verified runtime behavior, not new architecture  |             |
+|         |            | decisions — no Conflict/AQ entries added.                        |             |
+|         |            | Section 3: status Planned → Active ⚠️ SVCAPI ✓ for both modules; |             |
+|         |            | Status Note added explaining what SVCAPI-complete does and does  |             |
+|         |            | not cover (DOC/INT-C/INT-R/F1-F3/SEC/ALIGN still PENDING).        |             |
+|         |            | Section 5: FileDocument/FileCategory/Notification/                |             |
+|         |            | NotificationTemplate/NotificationChannelConfig promoted from      |             |
+|         |            | (planned) to ACTIVE ✓ SVCAPI with confirmed DB table names        |             |
+|         |            | (FILE_DOCUMENT, FILE_CATEGORY, NOTIF_LOG, NOTIF_TEMPLATE,         |             |
+|         |            | NOTIF_CHANNEL_CONFIG). Implementation notes added under each.     |             |
+|         |            | Section 8: FILE RULES / NOTIFICATION RULES expanded with          |             |
+|         |            | concrete, verified Consumption Rule blocks (same pattern as       |             |
+|         |            | Section 4's Security/MasterData Lookup blocks) — actual           |             |
+|         |            | endpoints, auth/permission requirements per endpoint, and         |             |
+|         |            | integration patterns for other modules to call these two          |             |
+|         |            | services correctly. Flags that NotificationService's documented   |             |
+|         |            | RabbitMQ ingress path is NOT implemented (Spring Events + REST    |             |
+|         |            | are the only real ingress paths today) and that FileService's     |             |
+|         |            | DELETE access-token action requires PERM_SYSTEM_ADMIN, not        |             |
+|         |            | PERM_FILE_ATTACHMENT_DELETE. Source: live backend source read     |             |
+|         |            | (FileController/NotificationController and services) + a full     |             |
+|         |            | test_file_apis.py / test_notification_apis.py run against this    |             |
+|         |            | dev environment, both 100% green (25/25, 18/18).                  |             |
 
 - Major changes (new layer / new module) → increment major version (X.0.0)
 - Minor changes (new entity / new rule) → increment minor version (X.Y.0)

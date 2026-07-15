@@ -14,7 +14,6 @@ QR-IDs generated : QR-FILE-003, QR-FILE-004, QR-FILE-005, QR-FILE-006, QR-FILE-0
 > (Encrypted Token embedded in URL path). HTTP methods and the standard
 > ApiResponse<T> envelope still apply.
 
-<!-- API:API-FILE-001:START -->
 ### API-FILE-001 — Issue Upload Token
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/files/upload-token
@@ -50,8 +49,6 @@ SECURITY: Screen — none (system-to-system + Angular FileUploadComponent caller
 LOCALIZATION: N/A for success path — token payload only.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-001:END -->
-<!-- API:API-FILE-002:START -->
 ### API-FILE-002 — Upload File
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /upload/{encryptedToken}
@@ -122,8 +119,6 @@ SECURITY: Screen — SCR-FILE-001, Permission — PERM_FILE_ATTACHMENT_CREATE (i
 LOCALIZATION: Error responses carry messageAr + messageEn per Error Catalog.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-002:END -->
-<!-- API:API-FILE-003:START -->
 ### API-FILE-003 — Download File
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /download/{encryptedToken}
@@ -160,8 +155,6 @@ SECURITY: Screen — SCR-FILE-001, Permission — PERM_FILE_ATTACHMENT_VIEW (+ t
 LOCALIZATION: mimeType drives Content-Type; error responses carry messageAr + messageEn.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-003:END -->
-<!-- API:API-FILE-004:START -->
 ### API-FILE-004 — Delete File
 ─────────────────────────────────────────────────────────────────
 Method / Path    : DELETE /{encryptedToken}
@@ -228,8 +221,6 @@ SECURITY: Screen — SCR-FILE-001, Permission — PERM_FILE_ATTACHMENT_DELETE
 LOCALIZATION: messageAr + messageEn per Error Catalog.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-FILE-004:END -->
-<!-- API:API-FILE-005:START -->
 ### API-FILE-005 — List Files for Owner Record
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/files/{ownerId}
@@ -278,4 +269,3 @@ screen. No API is invented (Section 2A.3 compliance). This plan does not generat
 F1/F2/F3/SEC specs for a FileCategory screen because none is declared in the SRS.
 If a future need for a File-Service-owned FileCategory admin screen arises, it must
 first be added to srs-file-001.md (MODE 1) before MODE 2 can plan it.
-<!-- API:API-FILE-005:END -->

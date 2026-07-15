@@ -58,7 +58,7 @@ XM Inbound Stubs: XM-INBOUND-STUB-NOTIF-1 (all 3.x modules, event producers — 
                    data-FK stub, informational), XM-INBOUND-STUB-NOTIF-2 (AuditService,
                    SOFT-READ on NOTIF_LOG, NOT-YET-ASSIGNED)
 OQ-IDs Open: None
-DRV-IDs    : DRV-NOTIF-001..008 (contiguous — see Derivation Log)
+DRV-IDs    : DRV-NOTIF-001..010 (contiguous — see Derivation Log)
 ══════════════════════════════════════════════════════════════════
 ```
 
@@ -422,7 +422,6 @@ SERVICE ORCHESTRATION (NotificationEventProcessor — shared logic):
   then markFailed(); on success, markSent().
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-001:START -->
 ### API-NOTIF-001 — Send Immediate (system)
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/notifications/send
@@ -439,8 +438,6 @@ SECURITY: Screen — none (system-to-system call from any authenticated backend 
 LOCALIZATION: messageAr/messageEn per Error Catalog for the 400 case only.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-001:END -->
-<!-- API:API-NOTIF-002:START -->
 ### API-NOTIF-002 — Schedule (system)
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/notifications/schedule
@@ -457,8 +454,6 @@ ERRORS: ERR-NOTIF-0001 → HTTP 400.
 SECURITY: Screen — none.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-002:END -->
-<!-- API:API-NOTIF-003:START -->
 ### API-NOTIF-003 — Notification History
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/history
@@ -487,8 +482,6 @@ ERRORS: none beyond platform-standard (empty → HTTP 200).
 SECURITY: Screen — SCR-NOTIF-001, Permission — PERM_NOTIFICATION_INBOX_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-003:END -->
-<!-- API:API-NOTIF-004:START -->
 ### API-NOTIF-004 — Unread Notifications
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/unread
@@ -518,8 +511,6 @@ ERRORS: N/A (blocked).
 SECURITY: Screen — SCR-NOTIF-001, Permission — PERM_NOTIFICATION_INBOX_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-004:END -->
-<!-- API:API-NOTIF-005:START -->
 ### API-NOTIF-005 — Mark as Read
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/{id}/read
@@ -540,8 +531,6 @@ QR-NOTIF-006 — [BLOCKED — see DRV-NOTIF-003] UPDATE NotificationLog (read ma
 SECURITY: Screen — SCR-NOTIF-001, Permission — PERM_NOTIFICATION_INBOX_UPDATE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-005:END -->
-<!-- API:API-NOTIF-006:START -->
 ### API-NOTIF-006 — Template Search
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/templates
@@ -565,8 +554,6 @@ ERRORS: none beyond platform-standard.
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-006:END -->
-<!-- API:API-NOTIF-007:START -->
 ### API-NOTIF-007 — Create Template
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/notifications/templates
@@ -615,8 +602,6 @@ ERRORS: ERR-NOTIF-0002 (RULE-NOTIF-006) → HTTP 400; ERR-NOTIF-0003 (RULE-NOTIF
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_CREATE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-007:END -->
-<!-- API:API-NOTIF-008:START -->
 ### API-NOTIF-008 — Update Template
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/templates/{id}
@@ -642,8 +627,6 @@ ERRORS: ERR-NOTIF-0002 → 400; ERR-NOTIF-0003 → 409.
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_UPDATE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-008:END -->
-<!-- API:API-NOTIF-009:START -->
 ### API-NOTIF-009 — Deactivate Template
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/templates/{id}/deactivate
@@ -656,8 +639,6 @@ SERVICE ORCHESTRATION: UPDATE NotificationTemplate SET isActiveFl = false
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_DELETE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-009:END -->
-<!-- API:API-NOTIF-010:START -->
 ### API-NOTIF-010 — Get Template by ID
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/templates/{id}
@@ -672,8 +653,6 @@ QR-NOTIF-011 — FIND NotificationTemplate by PK — REPOSITORY STRATEGY (AMEND-
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-010:END -->
-<!-- API:API-NOTIF-011:START -->
 ### API-NOTIF-011 — List Channel Configs
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/channel-configs
@@ -682,8 +661,6 @@ Reuses QR-NOTIF-001 pattern (FIND_ALL variant — no pagination needed, fixed 5 
 SECURITY: Screen — SCR-NOTIF-003, Permission — PERM_NOTIFICATION_CHANNEL_CONFIG_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-011:END -->
-<!-- API:API-NOTIF-012:START -->
 ### API-NOTIF-012 — Update Channel Config
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/channel-configs/{id}
@@ -725,7 +702,6 @@ therefore tracked via this DRV-ID only, with a formal recommendation — not a
 self-assigned ID — that Project 1 raise its own OQ-ID upon SRS amendment. See the
 Escalation Note immediately below. API-NOTIF-004/005 are GOVERNANCE-NOTE-BLOCKED
 pending that SRS/DB amendment.
-<!-- API:API-NOTIF-012:END -->
 <!-- PHASE:SVCAPI:END -->
 
 ---
@@ -814,7 +790,6 @@ XM-NOTIF-001 │ HARD-FK         │ File Service  │ DB Foreign Key  │ DEFER
 ══════════════════════════════════════════════════════════════════════════
 ```
 
-<!-- XM:XM-NOTIF-001:START -->
 ### XM-NOTIF-001 — NotificationTemplate.fileFk → FileService.FileDocument
 ─────────────────────────────────────────────────────────────────
 Target Module    : File Service (1.10)
@@ -848,7 +823,6 @@ DEFERRED strategy: templateBodyAr/templateBodyEn remain the read path for templa
                     reads or writes fileFk.
 ─────────────────────────────────────────────────────────────────
 
-<!-- XM:XM-NOTIF-001:END -->
 **Live cross-module FK — NOT an XM-ID (documented distinction):**
 ```
 NOTIF_LOG.RECIPIENT_ID → Security USERS.USERS_PK — created live in Block 5d of
@@ -1199,10 +1173,144 @@ F3-SEC-RULE-1 — SCR-NOTIF-002: canEdit=false → all form fields readonly;
 
 ---
 
+<!-- PHASE:F4:START -->
+## PHASE F4 — Frontend Routing & Component Structure
+─────────────────────────────────────────────────────────────────
+Gate Required    : F3 ✓
+Gate This Phase  : F4 ✓
+Gate Status      : PASSED ✓
+─────────────────────────────────────────────────────────────────
+
+<!-- SUB:SCR-NOTIF-001:START -->
+### F4-SCREEN — SCR-NOTIF-001 — Notification Bell + History
+─────────────────────────────────────────────────────────────────
+**Deviation notice (DRV-NOTIF-009, DRV-NOTIF-010 — see Derivation Log):**
+SCR-NOTIF-001 is a PATTERN-3 (Specialized) screen — no Search/Entry split
+(F4-RULE-5 does not apply). It has two distinct UI surfaces: a header-embedded
+bell dropdown (no route) and a full history list (has its own route, since
+the SRS's history/filter requirements exceed what a dropdown can reasonably
+hold).
+
+Route path       : /notifications                                ← F4-RULE-1
+                    (full history list view only; the bell dropdown itself
+                    has no route — see Component Structure below)
+
+Module           : NotificationModule — lazy-loaded                ← F4-RULE-2
+Module path      : app/features/notifications/notifications.module.ts
+
+Route guard      : [AuthGuard, PermissionGuard]                    ← F4-RULE-3
+                    (applies to the /notifications route only — the header
+                    bell component is part of the always-loaded app shell,
+                    not a guarded lazy route, per DRV-NOTIF-010)
+PERM_* required  : PERM_NOTIFICATION_INBOX_VIEW (list route)
+
+Child routes     : NONE (single list view, no create/edit sub-routes —
+                    mark-as-read is an inline row action, not a route)
+
+COMPONENTS:
+  NotificationBellComponent
+    Path       : app/shared/components/notification-bell/notification-bell.component.ts
+    Route      : N/A — embedded in the app shell header, not routed
+                 (DRV-NOTIF-010 — always-loaded, shows a live unread
+                 preview and links to /notifications for the full list)
+    Facade     : NotificationInboxFacade
+  NotificationHistoryComponent
+    Path       : app/features/notifications/components/notification-history/
+    Route      : /notifications
+    Facade     : NotificationInboxFacade
+
+SharedModule imports : CommonModule, SharedUiModule (badge/spinner primitives)
+─────────────────────────────────────────────────────────────────
+<!-- SUB:SCR-NOTIF-001:END -->
+
+<!-- SUB:SCR-NOTIF-002:START -->
+### F4-SCREEN — SCR-NOTIF-002 — Template Management
+─────────────────────────────────────────────────────────────────
+Route path       : /notification-templates                        ← F4-RULE-1
+                    /notification-templates/new
+                    /notification-templates/:id
+                    /notification-templates/:id/edit
+                    (no /tree route — NotificationTemplate is not
+                    self-referencing, not tree-bearing)
+
+Module           : NotificationModule — lazy-loaded                ← F4-RULE-2
+Module path      : app/features/notifications/notifications.module.ts
+
+Route guard      : [AuthGuard, PermissionGuard]                    ← F4-RULE-3
+PERM_* required  : PERM_NOTIFICATION_TEMPLATE_VIEW (list route + entry-view mode)
+                    PERM_NOTIFICATION_TEMPLATE_CREATE (new route)
+                    PERM_NOTIFICATION_TEMPLATE_UPDATE (edit route)
+
+Child routes     : :id resolves NotificationTemplateEntryComponent in VIEW
+                    mode; :id/edit resolves it in EDIT mode
+
+COMPONENTS:                                                        ← F4-RULE-4, F4-RULE-5
+  NotificationTemplateSearchComponent
+    Path       : app/features/notifications/components/notification-template-search/
+    Route      : /notification-templates
+    Facade     : NotificationTemplateFacade                        ← F4-RULE-6
+  NotificationTemplateEntryComponent
+    Path       : app/features/notifications/components/notification-template-entry/
+    Route      : /notification-templates/new, /:id, /:id/edit
+    Mode       : CREATE | EDIT | VIEW — resolved from ActivatedRoute  ← F4-RULE-7
+    Facade     : NotificationTemplateFacade
+
+SharedModule imports : CommonModule, ReactiveFormsModule, SharedUiModule
+─────────────────────────────────────────────────────────────────
+<!-- SUB:SCR-NOTIF-002:END -->
+
+<!-- SUB:SCR-NOTIF-003:START -->
+### F4-SCREEN — SCR-NOTIF-003 — Channel Configuration
+─────────────────────────────────────────────────────────────────
+**Deviation notice (DRV-NOTIF-009 — see Derivation Log):** SCR-NOTIF-003 is
+a PATTERN-2 (Inline Toggle List) screen — no Search/Entry split (F4-RULE-5
+does not apply); 5 fixed rows are edited inline, no separate Entry route.
+
+Route path       : /notification-channel-configs                   ← F4-RULE-1
+
+Module           : NotificationModule — lazy-loaded                 ← F4-RULE-2
+Module path      : app/features/notifications/notifications.module.ts
+
+Route guard      : [AuthGuard, PermissionGuard]                     ← F4-RULE-3
+PERM_* required  : PERM_NOTIFICATION_CHANNEL_CONFIG_VIEW (list route)
+                    PERM_NOTIFICATION_CHANNEL_CONFIG_UPDATE (inline edit — no separate route)
+
+Child routes     : NONE (single inline-editable list, no create/edit sub-routes)
+
+COMPONENTS:
+  NotificationChannelConfigComponent
+    Path       : app/features/notifications/components/notification-channel-config/
+    Route      : /notification-channel-configs
+    Facade     : NotificationChannelConfigFacade
+
+SharedModule imports : CommonModule, ReactiveFormsModule (JSON editor), SharedUiModule
+─────────────────────────────────────────────────────────────────
+<!-- SUB:SCR-NOTIF-003:END -->
+
+**F4 Gate Checklist (self-check):**
+```
+[✓] All 3 SCR-IDs each have exactly one F4-SCREEN block
+[N/A] No tree-bearing entity in this module — no TreeComponent required
+[✓] Every route (SCR-NOTIF-001's /notifications, SCR-NOTIF-002's 4 routes,
+    SCR-NOTIF-003's 1 route) declares [AuthGuard, PermissionGuard] — the
+    only N/A is the header bell component, which is not a route (DRV-NOTIF-010)
+[✓] Every PERM_* referenced in F4 also appears in SEC's Permissions Matrix
+    for the same SCR-ID — no F4-only permission names
+[✓] No component name uses "Page" or "Container" suffix
+[✓/N/A] Search/Entry separation — SCR-NOTIF-002 (PATTERN-1) correctly
+    declares separate Search/Entry components; SCR-NOTIF-001 (PATTERN-3)
+    and SCR-NOTIF-003 (PATTERN-2) are N/A (DRV-NOTIF-009)
+[✓] NotificationTemplateEntryComponent's mode resolution source is
+    ActivatedRoute — never @Input
+```
+<!-- PHASE:F4:END -->
+
+---
+
 <!-- PHASE:SEC:START -->
 ## PHASE SEC — Security Specifications
 ─────────────────────────────────────────────────────────────────
-Gate Required    : F3 ✓
+Gate Required    : F4 ✓
 Gate This Phase  : SEC ✓
 Gate Status      : PASSED ✓
 ─────────────────────────────────────────────────────────────────
@@ -1312,7 +1420,8 @@ All QR-IDs in QRC appear in Plan Index QRC Summary         │ ✓ (11 total —
 Derivation Log complete — no undocumented inferences       │ ✓ — DRV-NOTIF-001..008
 DB Structural Alignment confirms field coverage            │ ✓ — 38/38 DBF-IDs bound
 ───────────────────────────────────────────────────────────┼──────────────
-SCREEN STRUCTURE CHECKS                                    │ ✓ (3/3 SCR-IDs, F1/F2/F3/SEC present)
+SCREEN STRUCTURE CHECKS                                    │ ✓ (3/3 SCR-IDs, F1/F2/F3/F4/SEC present;
+                                                             │   F4 N/A items documented via DRV-NOTIF-009/010)
 LOV / LOOKUP CHECKS                                        │ ✓ (2/2 LOV-IDs, String-typed; CHECK-9.2 WAIVER
                                                              │   CANDIDATE flagged — see F2-LOV-SERVICE note)
 BUSINESS CODE CHECKS                                       │ N/A — no entity has a Business Code (documented)
@@ -1337,6 +1446,27 @@ Auto-correction applied: QR-ID renumbering (QR-NOTIF-010/011 collision resolved 
   findings routed through DRV-IDs and the Escalation Note only — P3 does not
   self-assign OQ-IDs (CORE-7/RULE-2).
 ═══════════════════════════════════════════════════════════════════════════
+
+**Table 2 — Operations Coverage (F4 Route column added per AMEND-P3-J):**
+```
+Operation  │ API-ID        │ UI Action (SCR-ID)                        │ F4 Route                        │ TC-ID        │ QR-ID       │ XM-ID │ Status
+───────────┼────────────────┼─────────────────────────────────────────────┼──────────────────────────────────┼──────────────┼─────────────┼───────┼───────
+History    │ API-NOTIF-003  │ SCR-NOTIF-001 list view                    │ /notifications                  │ TC-NOTIF-016 │ QR-NOTIF-004 │ —     │ ✓
+Unread     │ API-NOTIF-004  │ SCR-NOTIF-001 bell badge                   │ N/A — bell has no route (DRV-NOTIF-010) │ DEFERRED │ QR-NOTIF-005 │ —  │ ⏸ DRV-NOTIF-003
+Mark read  │ API-NOTIF-005  │ SCR-NOTIF-001 row action                   │ N/A — bell has no route (DRV-NOTIF-010) │ DEFERRED │ QR-NOTIF-006 │ —  │ ⏸ DRV-NOTIF-003
+Search     │ API-NOTIF-006  │ SCR-NOTIF-002 Search view                  │ /notification-templates          │ TC-NOTIF-017 │ QR-NOTIF-007 │ —     │ ✓
+Create     │ API-NOTIF-007  │ SCR-NOTIF-002 Entry view (new)              │ /notification-templates/new     │ TC-NOTIF-011 │ QR-NOTIF-008 │ —     │ ✓
+Update     │ API-NOTIF-008  │ SCR-NOTIF-002 Entry view (edit)             │ /notification-templates/:id/edit│ TC-NOTIF-018 │ QR-NOTIF-009 │ —     │ ✓
+Deactivate │ API-NOTIF-009  │ SCR-NOTIF-002 Entry view (deactivate action)│ /notification-templates/:id     │ TC-NOTIF-019 │ QR-NOTIF-009 │ —     │ ✓
+Get by ID  │ API-NOTIF-010  │ SCR-NOTIF-002 Entry view (VIEW mode)        │ /notification-templates/:id     │ TC-NOTIF-020 │ QR-NOTIF-011 │ —     │ ✓
+List       │ API-NOTIF-011  │ SCR-NOTIF-003 list view                    │ /notification-channel-configs    │ TC-NOTIF-021 │ QR-NOTIF-001 │ —     │ ✓
+Update     │ API-NOTIF-012  │ SCR-NOTIF-003 inline toggle                │ /notification-channel-configs    │ TC-NOTIF-007 │ QR-NOTIF-010 │ —     │ ✓
+```
+Note: API-NOTIF-001/002 are system-to-system (not UI-triggered) — no row in
+this table, consistent with F2's note that they have no Angular service caller.
+API-NOTIF-004/005 F4 Route cells are explicitly "N/A — bell has no route" (not
+blank) and Status is ⏸ (DEFERRED, cross-referenced to DRV-NOTIF-003), not a
+silent gap.
 
 **Table 4 — XM Dependency Gate:**
 ```
@@ -1396,6 +1526,21 @@ DRV-NOTIF-008 │ CHECK-9.2 WAIVER CANDIDATE (4A-NOTIF-001-010): LOV-NOTIF-001 a
               │ Service (DRV-FILE-009). Flagged for the governance framework to
               │ formally reconcile CHECK-9.2 with the shared-lookup-service
               │ pattern; no plan-level action required.
+DRV-NOTIF-009 │ F4-RULE-5 (PATTERN-1 Search/Entry separation) N/A for
+              │ SCR-NOTIF-001 (PATTERN-3 Specialized — Bell + History) and
+              │ SCR-NOTIF-003 (PATTERN-2 Inline Toggle List). Only
+              │ SCR-NOTIF-002 (Template Management) is a genuine PATTERN-1
+              │ Composite Screen and correctly declares separate
+              │ Search/Entry components in F4.
+DRV-NOTIF-010 │ SCR-NOTIF-001's bell dropdown (NotificationBellComponent)
+              │ has no route of its own — it lives in the always-loaded
+              │ app shell header, consistent with the SEC phase's existing
+              │ note ("header component, no navigation route gate in the
+              │ traditional sense"). A separate routed /notifications view
+              │ (NotificationHistoryComponent) is added in F4 to satisfy
+              │ the full history/filter requirements from SRS B2/B3, which
+              │ exceed what a header dropdown can reasonably hold — this is
+              │ an F4-level structural decision, not a new business rule.
 ```
 
 ---
@@ -1484,7 +1629,7 @@ Next Action    : Trigger MODE 4A — Governance Audit Engine (Project 4), then
 ║ Plan ID               ║ PLAN-NOTIF-001                           ║
 ║ Output                ║ STAGE 1 — execution-plan.md Agent-Ready  ║
 ║ Phases Complete       ║ CORE✓ DATA+DOM✓ SVC+API✓ DOC✓ INT-C✓   ║
-║                       ║ INT-R✓ F1✓ F2✓ F3✓ SEC✓ SECTION D✓ ALIGN✓ ║
+║                       ║ INT-R✓ F1✓ F2✓ F3✓ F4✓ SEC✓ SECTION D✓ ALIGN✓ ║
 ║ TC Coverage Summary   ║ SECTION D present — 7/7 rules, 10/12 APIs covered (2 DEFERRED) ║
 ║ Open Questions        ║ 0 (P3 does not assign OQ-IDs) — 1 Escalation Note recommending a  ║
 ║                       ║ MODE 1 OQ (DRV-NOTIF-003), blocks 2 of 12 APIs           ║

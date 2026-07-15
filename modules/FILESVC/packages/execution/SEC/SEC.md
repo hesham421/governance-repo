@@ -2,7 +2,7 @@
 
 ## PHASE SEC — Security Specifications
 ─────────────────────────────────────────────────────────────────
-Gate Required    : F3 ✓
+Gate Required    : F4 ✓
 Gate This Phase  : SEC ✓
 Gate Status      : PASSED ✓
 ─────────────────────────────────────────────────────────────────
@@ -12,6 +12,7 @@ Gate Status      : PASSED ✓
 Screen guard     : canView = true required for the panel to render within its host screen.
 Permission-based UI behavior:
   canView   = false → panel not rendered
+
   canCreate = false → upload control hidden
   canEdit   = false → N/A (no Update operation exists for FileDocument)
   canDelete = false → delete button hidden

@@ -79,7 +79,6 @@ SERVICE ORCHESTRATION (NotificationEventProcessor — shared logic):
   then markFailed(); on success, markSent().
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-001:START -->
 ### API-NOTIF-001 — Send Immediate (system)
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/notifications/send
@@ -96,8 +95,6 @@ SECURITY: Screen — none (system-to-system call from any authenticated backend 
 LOCALIZATION: messageAr/messageEn per Error Catalog for the 400 case only.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-001:END -->
-<!-- API:API-NOTIF-002:START -->
 ### API-NOTIF-002 — Schedule (system)
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/notifications/schedule
@@ -114,8 +111,6 @@ ERRORS: ERR-NOTIF-0001 → HTTP 400.
 SECURITY: Screen — none.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-002:END -->
-<!-- API:API-NOTIF-003:START -->
 ### API-NOTIF-003 — Notification History
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/history
@@ -144,8 +139,6 @@ ERRORS: none beyond platform-standard (empty → HTTP 200).
 SECURITY: Screen — SCR-NOTIF-001, Permission — PERM_NOTIFICATION_INBOX_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-003:END -->
-<!-- API:API-NOTIF-004:START -->
 ### API-NOTIF-004 — Unread Notifications
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/unread
@@ -175,8 +168,6 @@ ERRORS: N/A (blocked).
 SECURITY: Screen — SCR-NOTIF-001, Permission — PERM_NOTIFICATION_INBOX_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-004:END -->
-<!-- API:API-NOTIF-005:START -->
 ### API-NOTIF-005 — Mark as Read
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/{id}/read
@@ -197,8 +188,6 @@ QR-NOTIF-006 — [BLOCKED — see DRV-NOTIF-003] UPDATE NotificationLog (read ma
 SECURITY: Screen — SCR-NOTIF-001, Permission — PERM_NOTIFICATION_INBOX_UPDATE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-005:END -->
-<!-- API:API-NOTIF-006:START -->
 ### API-NOTIF-006 — Template Search
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/templates
@@ -222,8 +211,6 @@ ERRORS: none beyond platform-standard.
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-006:END -->
-<!-- API:API-NOTIF-007:START -->
 ### API-NOTIF-007 — Create Template
 ─────────────────────────────────────────────────────────────────
 Method / Path    : POST /api/v1/notifications/templates
@@ -272,8 +259,6 @@ ERRORS: ERR-NOTIF-0002 (RULE-NOTIF-006) → HTTP 400; ERR-NOTIF-0003 (RULE-NOTIF
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_CREATE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-007:END -->
-<!-- API:API-NOTIF-008:START -->
 ### API-NOTIF-008 — Update Template
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/templates/{id}
@@ -299,8 +284,6 @@ ERRORS: ERR-NOTIF-0002 → 400; ERR-NOTIF-0003 → 409.
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_UPDATE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-008:END -->
-<!-- API:API-NOTIF-009:START -->
 ### API-NOTIF-009 — Deactivate Template
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/templates/{id}/deactivate
@@ -313,8 +296,6 @@ SERVICE ORCHESTRATION: UPDATE NotificationTemplate SET isActiveFl = false
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_DELETE.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-009:END -->
-<!-- API:API-NOTIF-010:START -->
 ### API-NOTIF-010 — Get Template by ID
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/templates/{id}
@@ -329,8 +310,6 @@ QR-NOTIF-011 — FIND NotificationTemplate by PK — REPOSITORY STRATEGY (AMEND-
 SECURITY: Screen — SCR-NOTIF-002, Permission — PERM_NOTIFICATION_TEMPLATE_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-010:END -->
-<!-- API:API-NOTIF-011:START -->
 ### API-NOTIF-011 — List Channel Configs
 ─────────────────────────────────────────────────────────────────
 Method / Path    : GET /api/v1/notifications/channel-configs
@@ -339,8 +318,6 @@ Reuses QR-NOTIF-001 pattern (FIND_ALL variant — no pagination needed, fixed 5 
 SECURITY: Screen — SCR-NOTIF-003, Permission — PERM_NOTIFICATION_CHANNEL_CONFIG_VIEW.
 ─────────────────────────────────────────────────────────────────
 
-<!-- API:API-NOTIF-011:END -->
-<!-- API:API-NOTIF-012:START -->
 ### API-NOTIF-012 — Update Channel Config
 ─────────────────────────────────────────────────────────────────
 Method / Path    : PUT /api/v1/notifications/channel-configs/{id}
@@ -382,4 +359,3 @@ therefore tracked via this DRV-ID only, with a formal recommendation — not a
 self-assigned ID — that Project 1 raise its own OQ-ID upon SRS amendment. See the
 Escalation Note immediately below. API-NOTIF-004/005 are GOVERNANCE-NOTE-BLOCKED
 pending that SRS/DB amendment.
-<!-- API:API-NOTIF-012:END -->
